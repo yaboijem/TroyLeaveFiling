@@ -1,0 +1,24 @@
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 178
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 178
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 178
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 178
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 178
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:36 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:37 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 178
+[20-Nov-2026 01:45:37 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:37 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:37 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 178
+[20-Nov-2026 01:45:37 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:45:37 Asia/Manila] PHP Warning:  Trying to access array offset on value of type null in M:\TroyLeaveFiling\TroyLeaveFiling\portal\lib\attendance.php on line 179
+[20-Nov-2026 01:47:04 Asia/Manila] PHP Warning:  file_get_contents(M:\TroyLeaveFiling\TroyLeaveFiling\portal/uploads/.htaccess): Failed to open stream: No such file or directory in M:\TroyLeaveFiling\TroyLeaveFiling\portal\tests\photo_test.php on line 59
+[20-Nov-2026 04:18:35 Europe/Berlin] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\con83BE.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[20-Nov-2026 11:18:37 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20

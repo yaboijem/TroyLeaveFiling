@@ -1,0 +1,48 @@
+cleaningtypefile add status = 8 - CI - CHECK IN
+
+roomfiletbl add checkinuserid 
+		checkintime
+		checkinshift		
+		checkouttime
+		checkoutshift	
+		housekeepershift
+		trandatestart
+		trandateend
+
+hktranfiletbl add housekeepershift and check all fields
+
+
+Reports
+Shift	Check Out	Housekeeping		Balance		Carry Over
+S1	20		18			2		0
+Shift	Check Out	Housekeeping		Balance	
+S2	30		30			0		2
+
+
+SHIFT 1 	6AM TO 2PM
+SHFIT 2		2PM TO 10PM
+SHIFT 3		10PM TO 6AM
+
+
+Create user log in with option select front office or house keeping
+		
+Linen = 6
+Flat Sheet  - 2
+Pillow Case - 2
+Towel	    - 2
+
+
+Add Transaction
+Same Linen
+ 
+Extra - 
+	Flat Sheet  - 2
+	Pillow Case - 2
+	Towel	    - 2
+Replace
+	Flat Sheet  - 2
+	Pillow Case - 2
+	Towel	    - 2
+
+Create Extra/Replace Linen Transaction (note in re check in guest need to put re used linen check box upon check in)
+upon check out create a linetranfiletbl na kung saan doon na sesave yung mga ginamit na linen and dto rin masave yung sa extra/replace linen

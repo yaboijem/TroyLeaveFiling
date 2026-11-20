@@ -1,0 +1,16 @@
+Options -Indexes
+DirectoryIndex index.html
+RewriteEngine On
+
+# Keep implementation, operational tooling and evidence private.
+RewriteRule ^(?:lib|bin|sql|tests|vendor|logs|uploads)(?:/|$) - [F,L,NC]
+<FilesMatch "^(?:composer\.(?:json|lock)|routes\.php|.*\.log)$">
+    Require all denied
+</FilesMatch>
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^api(?:/.*)?$ api/index.php [END,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [END]

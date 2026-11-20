@@ -1,0 +1,12 @@
+{
+  "name": "troy/employee-portal",
+  "description": "Native PHP employee attendance portal",
+  "require": {
+    "php": "^8.2",
+    "ext-mysqli": "*",
+    "ext-gd": "*",
+    "ext-fileinfo": "*",
+    "ext-curl": "*",
+    "minishlink/web-push": "^9.0"
+  }
+}
