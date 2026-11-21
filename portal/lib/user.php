@@ -35,7 +35,7 @@ function portal_home_location_summary(mysqli $db, string $idno): array
 
     $stmt = $db->prepare(
         'SELECT * FROM home_locations
-          WHERE employee_id = ? AND status = ?
+          WHERE idno = ? AND status = ?
           ORDER BY id DESC LIMIT 1'
     );
 
@@ -48,7 +48,7 @@ function portal_home_location_summary(mysqli $db, string $idno): array
     $pendingStatus = 'pending';
     $stmt = $db->prepare(
         'SELECT * FROM home_locations
-          WHERE employee_id = ? AND status = ?
+          WHERE idno = ? AND status = ?
           ORDER BY id DESC LIMIT 1'
     );
     $stmt->bind_param('ss', $idno, $pendingStatus);
@@ -93,7 +93,7 @@ function portal_user_dto(mysqli $db, string $idno): ?array
                 b.radius_meters AS branch_radius_meters
            FROM employeefiletbl e
       LEFT JOIN departmentfiletbl d ON d.deptcode = e.deptcode
-      LEFT JOIN dtr_employee_profile p ON p.idno = e.idno
+      LEFT JOIN dtr_employee_profile p ON p.idno COLLATE utf8mb4_general_ci = e.idno COLLATE utf8mb4_general_ci
       LEFT JOIN branches b ON b.id = p.branch_id
           WHERE e.idno = ?
           LIMIT 1'
@@ -108,6 +108,7 @@ function portal_user_dto(mysqli $db, string $idno): ?array
     }
 
     $summary = portal_home_location_summary($db, $idno);
+    $consents = portal_consent_summary($db, $idno);
     $split = portal_split_name((string) $row['employeename']);
     $position = trim((string) ($row['position'] ?? ''));
     $department = $row['deptname'] !== null ? (string) $row['deptname'] : null;
@@ -146,6 +147,7 @@ function portal_user_dto(mysqli $db, string $idno): ?array
             'work_arrangement' => $summary['work_arrangement'],
             'home_location_status' => $summary['status'],
             'home_location' => $summary['home_location'],
+            'consents' => $consents,
             'branch' => $branch,
         ],
     ];

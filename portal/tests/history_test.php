@@ -51,7 +51,7 @@ return [
         foreach ([['break_in','12:01:00',null], ['break_out','13:00:00',59], ['break_in','15:00:00',null], ['break_out','15:15:00',15]] as [$type,$time,$minutes]) {
             $uuid = bin2hex(random_bytes(18));
             $at = '2026-11-19 ' . $time;
-            $stmt = $db->prepare("INSERT INTO attendance_punches (attendance_id,employee_id,uuid,type,punched_at,break_kind,break_minutes,created_at) VALUES (?,'1015',?,?,?,'15_min',?,?)");
+            $stmt = $db->prepare("INSERT INTO attendance_punches (attendance_id,idno,uuid,type,punched_at,break_kind,break_minutes,created_at) VALUES (?,'1015',?,?,?,'15_min',?,?)");
             $stmt->bind_param('isssis', $p['attendance_id'], $uuid, $type, $at, $minutes, $at);
             $stmt->execute();
         }
@@ -80,6 +80,7 @@ return [
         $rows = portal_history_page(portal_test_db(), '1015', null, null, 1)['data'];
         portal_assert_same([], $rows[0]['fraud_flags']);
         portal_assert_same('rapid_clock', $rows[1]['fraud_flags'][0]['type']);
+        portal_assert_same('Rapid clock', $rows[1]['fraud_flags'][0]['label']);
     },
     'photo comes from the time in punch' => function (): void {
         $p = portal_test_evidence('2026-11-19 08:00:00', null, 'attendance/example.jpg');
@@ -88,7 +89,7 @@ return [
     },
     'history only returns the caller rows' => function (): void {
         $p = portal_test_evidence();
-        portal_test_db()->query("UPDATE attendance SET employee_id='1016' WHERE id={$p['attendance_id']}");
+        portal_test_db()->query("UPDATE attendance SET idno='1016' WHERE id={$p['attendance_id']}");
         portal_assert_same([], portal_history_page(portal_test_db(), '1015', null, null, 1)['data']);
     },
 ];

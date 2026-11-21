@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 function gps_test_home(mysqli $db, string $status, float $lat = 14.5995, float $lng = 120.9842): int
 {
-    $stmt = $db->prepare("INSERT INTO home_locations (employee_id,label,latitude,longitude,radius_meters,status,created_at,updated_at) VALUES ('1019','Home',?,?,200,?,NOW(),NOW())");
+    $stmt = $db->prepare("INSERT INTO home_locations (idno,label,latitude,longitude,radius_meters,status,created_at,updated_at) VALUES ('1019','Home',?,?,200,?,NOW(),NOW())");
     $stmt->bind_param('dds', $lat, $lng, $status);
     $stmt->execute();
     return (int) $db->insert_id;

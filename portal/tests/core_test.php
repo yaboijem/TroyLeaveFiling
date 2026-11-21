@@ -53,4 +53,14 @@ return [
         }
         throw new RuntimeException('Expected portal_db_connect to refuse a non-test database.');
     },
+
+    'security headers are defined' => function (): void {
+        $headers = portal_security_headers();
+
+        portal_assert_same('nosniff', $headers['X-Content-Type-Options'] ?? null);
+        portal_assert_same('DENY', $headers['X-Frame-Options'] ?? null);
+        portal_assert_same('no-referrer', $headers['Referrer-Policy'] ?? null);
+        portal_assert_true(str_contains($headers['Permissions-Policy'] ?? '', 'geolocation=(self)'));
+        portal_assert_true(str_contains($headers['Content-Security-Policy'] ?? '', "frame-ancestors 'none'"));
+    },
 ];

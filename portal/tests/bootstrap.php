@@ -99,7 +99,7 @@ function portal_test_db(): mysqli
 
     $db = portal_db_connect($config);
 
-    foreach ([__DIR__ . '/troy_schema.sql', dirname(__DIR__) . '/sql/001_schema.sql'] as $schema) {
+    foreach ([__DIR__ . '/troy_schema.sql', dirname(__DIR__) . '/sql/001_schema.sql', dirname(__DIR__) . '/sql/003_push_outbox.sql'] as $schema) {
         if (!is_file($schema)) {
             continue;
         }
@@ -141,6 +141,7 @@ function portal_test_reset(): void
 
     try {
         foreach ([
+            'push_outbox',
             'fraud_flags',
             'attendance_punches',
             'attendance',
@@ -249,7 +250,7 @@ function portal_test_reset(): void
         $stmt->close();
 
         $stmt = $db->prepare(
-            'INSERT INTO consents (employee_id, type, granted, granted_at, revoked_at, updated_at)
+            'INSERT INTO consents (idno, type, granted, granted_at, revoked_at, updated_at)
              VALUES (?, ?, 1, ?, NULL, ?)'
         );
 

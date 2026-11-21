@@ -74,7 +74,7 @@ function portal_private_photo_path(?string $relative): ?string
 
 function portal_photo_response(mysqli $db, string $idno, string $uuid): array
 {
-    $stmt = $db->prepare('SELECT photo_path FROM attendance_punches WHERE employee_id=? AND uuid=? LIMIT 1');
+    $stmt = $db->prepare('SELECT photo_path FROM attendance_punches WHERE idno=? AND uuid=? LIMIT 1');
     $stmt->bind_param('ss', $idno, $uuid);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();

@@ -21,17 +21,17 @@ return [
 
     // Empty keys disable device push; the rest of the portal still works.
     'vapid' => [
-        'subject' => '',
-        'public_key' => '',
-        'private_key' => '',
+        'subject' => 'mailto:jeremybantol27@gmail.com',
+        'public_key' => 'BFCi8flmwiA679a9ArWLNmruYV2fw51S1OT83xHXtiqGBiKBHSvqQC_Hv_qOwK5sZI5FwiKrQJStsmAQ86gB4ks',
+        'private_key' => 'pAz0AMxrpQ38WACI8YoRzNIfcTAN1eQo_lOhesN8Lf8',
     ],
 
     // TODO: replace with the real office coordinates before go-live.
     'branch' => [
         'name' => 'Main Office',
         'code' => 'MAIN',
-        'latitude' => 0.0,
-        'longitude' => 0.0,
+        'latitude' => 14.5995,
+        'longitude' => 120.9842,
         'radius_meters' => 200,
         'accuracy_ceiling_meters' => 100,
         'accuracy_allowance_meters' => 20,

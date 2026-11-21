@@ -1,0 +1,3 @@
+portal/vendor/
+portal/uploads/attendance/*
+!portal/uploads/attendance/.gitkeep

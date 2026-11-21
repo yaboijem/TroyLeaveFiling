@@ -31,7 +31,7 @@ return [
     },
     'close session closes abandoned shift' => function (): void {
         $p = portal_test_evidence();
-        portal_test_db()->query("INSERT INTO attendance_punches (attendance_id,employee_id,uuid,type,punched_at,break_minutes,created_at) VALUES ({$p['attendance_id']},'1015','55555555-0000-4000-8000-000000000001','break_out','2026-11-19 12:30:00',30,NOW())");
+        portal_test_db()->query("INSERT INTO attendance_punches (attendance_id,idno,uuid,type,punched_at,break_minutes,created_at) VALUES ({$p['attendance_id']},'1015','55555555-0000-4000-8000-000000000001','break_out','2026-11-19 12:30:00',30,NOW())");
         $result = portal_close_session(portal_test_db(), '1015', '2026-11-19 17:00:00', 'Forgot', 'Ana');
         portal_assert_same(510, (int) $result['attendance']['work_minutes']);
         portal_assert_same('2026-11-19 17:00:00', $result['attendance']['time_out']);

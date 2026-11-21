@@ -1,9 +1,18 @@
 <?php
 declare(strict_types=1);
 
-function portal_evaluate_fraud(mysqli $db, array $punch, ?array $previousGps, string $punchedAt): array
+function portal_fraud_label(string $type): string
 {
-    $candidates = [];
+    return match ($type) {
+        'out_of_radius' => 'Out of radius',
+        'impossible_jump' => 'Impossible jump',
+        'rapid_clock' => 'Rapid clock',
+        default => ucfirst(str_replace('_', ' ', $type)),
+    };
+}
+
+function portal_evaluate_fraud(mysqli $db, array $punch, ?array $previousGps, string $punchedAt): array
+{    $candidates = [];
     if (isset($punch['is_within_radius']) && (int) $punch['is_within_radius'] === 0) {
         $candidates['out_of_radius'] = ['medium', []];
     }
@@ -16,8 +25,8 @@ function portal_evaluate_fraud(mysqli $db, array $punch, ?array $previousGps, st
         }
     }
     $cutoff = (new DateTimeImmutable($punchedAt, portal_tz()))->modify('-1 minute')->format('Y-m-d H:i:s');
-    $stmt = $db->prepare('SELECT id FROM attendance_punches WHERE employee_id=? AND type=? AND id<>? AND punched_at>=? AND punched_at<=? LIMIT 1');
-    $stmt->bind_param('ssiss', $punch['employee_id'], $punch['type'], $punch['id'], $cutoff, $punchedAt);
+    $stmt = $db->prepare('SELECT id FROM attendance_punches WHERE idno=? AND type=? AND id<>? AND punched_at>=? AND punched_at<=? LIMIT 1');
+    $stmt->bind_param('ssiss', $punch['idno'], $punch['type'], $punch['id'], $cutoff, $punchedAt);
     $stmt->execute();
     if ($stmt->get_result()->fetch_assoc()) $candidates['rapid_clock'] = ['medium', []];
     $stmt->close();
@@ -30,7 +39,7 @@ function portal_evaluate_fraud(mysqli $db, array $punch, ?array $previousGps, st
         if ($stmt->affected_rows > 0) {
             $flags[] = ['type' => $type, 'severity' => $severity];
             try {
-                portal_notify($db, (string) $punch['employee_id'], 'Attendance needs review', 'An attendance check was flagged: ' . $type, ['type' => $type, 'punch_id' => (int) $punch['id']], "fraud:{$punch['id']}:{$type}");
+                portal_notify($db, (string) $punch['idno'], 'Attendance needs review', 'An attendance check was flagged: ' . portal_fraud_label($type), ['type' => $type, 'punch_id' => (int) $punch['id']], "fraud:{$punch['id']}:{$type}");
             } catch (Throwable $e) { error_log('Portal fraud notification: ' . $e->getMessage()); }
         }
         $stmt->close();

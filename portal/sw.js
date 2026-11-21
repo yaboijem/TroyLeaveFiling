@@ -36,7 +36,9 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = new URL(BASE, self.location.origin).href;
+  const target = event.notification.data?.url
+    ? new URL(event.notification.data.url, self.location.origin).href
+    : new URL(BASE, self.location.origin).href;
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       for (const client of windows) {

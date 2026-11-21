@@ -38,7 +38,7 @@ function portal_submit_home_location(mysqli $db, string $idno, array $input, ?ca
         $stmt->execute();
         $stmt->get_result();
         $stmt->close();
-        $stmt = $db->prepare("UPDATE home_locations SET status='rejected',review_note='Superseded by a new submission.',updated_at=? WHERE employee_id=? AND status='pending'");
+        $stmt = $db->prepare("UPDATE home_locations SET status='rejected',review_note='Superseded by a new submission.',updated_at=? WHERE idno=? AND status='pending'");
         $stmt->bind_param('ss', $now, $idno);
         $stmt->execute();
         $stmt->close();
@@ -46,7 +46,7 @@ function portal_submit_home_location(mysqli $db, string $idno, array $input, ?ca
         $street = $address['street'] ?? null;
         $city = $address['city'] ?? null;
         $province = $address['province'] ?? null;
-        $stmt = $db->prepare("INSERT INTO home_locations (employee_id,label,latitude,longitude,radius_meters,address_text,street,city,province,status,created_at,updated_at) VALUES (?,?,?,?,200,?,?,?,?,'pending',?,?)");
+        $stmt = $db->prepare("INSERT INTO home_locations (idno,label,latitude,longitude,radius_meters,address_text,street,city,province,status,created_at,updated_at) VALUES (?,?,?,?,200,?,?,?,?,'pending',?,?)");
         $stmt->bind_param('ssddssssss', $idno, $label, $lat, $lng, $text, $street, $city, $province, $now, $now);
         $stmt->execute();
         $id = (int) $db->insert_id;
@@ -62,14 +62,14 @@ function portal_review_home_location(mysqli $db, int $id, string $action, ?strin
     if (!in_array($action, ['approve', 'reject'], true)) throw new PortalApiException('Invalid review action.', 'invalid_action', 422);
     $db->begin_transaction();
     try {
-        $stmt = $db->prepare('SELECT employee_id FROM home_locations WHERE id=?');
+        $stmt = $db->prepare('SELECT idno FROM home_locations WHERE id=?');
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $owner = $stmt->get_result()->fetch_assoc();
         $stmt->close();
         if (!$owner) throw new PortalApiException('Not found.', 'not_found', 404);
         $stmt = $db->prepare('SELECT idno FROM dtr_employee_profile WHERE idno=? FOR UPDATE');
-        $stmt->bind_param('s', $owner['employee_id']);
+        $stmt->bind_param('s', $owner['idno']);
         $stmt->execute();
         $stmt->get_result();
         $stmt->close();
@@ -89,8 +89,8 @@ function portal_review_home_location(mysqli $db, int $id, string $action, ?strin
         }
         $now = portal_now()->format('Y-m-d H:i:s');
         if ($action === 'approve') {
-            $stmt = $db->prepare("UPDATE home_locations SET status='rejected',review_note='Superseded by approved home location.',reviewed_by=?,reviewed_at=?,updated_at=? WHERE employee_id=? AND status='approved' AND id<>?");
-            $stmt->bind_param('ssssi', $reviewedBy, $now, $now, $row['employee_id'], $id);
+            $stmt = $db->prepare("UPDATE home_locations SET status='rejected',review_note='Superseded by approved home location.',reviewed_by=?,reviewed_at=?,updated_at=? WHERE idno=? AND status='approved' AND id<>?");
+            $stmt->bind_param('ssssi', $reviewedBy, $now, $now, $row['idno'], $id);
             $stmt->execute();
             $stmt->close();
         }
@@ -98,7 +98,7 @@ function portal_review_home_location(mysqli $db, int $id, string $action, ?strin
         $stmt->bind_param('sssssi', $status, $note, $reviewedBy, $now, $now, $id);
         $stmt->execute();
         $stmt->close();
-        portal_notify($db, (string) $row['employee_id'], 'Home location ' . $status, $note ?: 'HR has reviewed your home location.', ['home_location_id' => $id, 'status' => $status], "home-review:{$id}:{$status}");
+        portal_notify($db, (string) $row['idno'], 'Home location ' . $status, $note ?: 'HR has reviewed your home location.', ['home_location_id' => $id, 'status' => $status], "home-review:{$id}:{$status}");
         $row['status'] = $status;
         $db->commit();
         return portal_home_location_pin($row);

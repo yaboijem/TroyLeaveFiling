@@ -3,12 +3,31 @@ declare(strict_types=1);
 
 function portal_has_consent(mysqli $db, string $idno, string $type): bool
 {
-    $stmt = $db->prepare('SELECT granted FROM consents WHERE employee_id=? AND type=? LIMIT 1');
+    $stmt = $db->prepare('SELECT granted FROM consents WHERE idno=? AND type=? LIMIT 1');
     $stmt->bind_param('ss', $idno, $type);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     return (bool) ($row['granted'] ?? false);
+}
+
+function portal_consent_summary(mysqli $db, string $idno): array
+{
+    $summary = ['biometric_photos' => false, 'gps_location' => false, 'device_alerts' => false];
+
+    $stmt = $db->prepare('SELECT type, granted FROM consents WHERE idno=?');
+    $stmt->bind_param('s', $idno);
+    $stmt->execute();
+
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+        if (array_key_exists($row['type'], $summary)) {
+            $summary[$row['type']] = (bool) $row['granted'];
+        }
+    }
+
+    $stmt->close();
+
+    return $summary;
 }
 
 function portal_assert_punch_consent(mysqli $db, string $idno): void
@@ -34,7 +53,7 @@ function portal_consent_dto(array $row): array
 
 function portal_consent_list(mysqli $db, string $idno): array
 {
-    $stmt = $db->prepare('SELECT * FROM consents WHERE employee_id=? ORDER BY id');
+    $stmt = $db->prepare('SELECT * FROM consents WHERE idno=? ORDER BY id');
     $stmt->bind_param('s', $idno);
     $stmt->execute();
     $data = array_map('portal_consent_dto', $stmt->get_result()->fetch_all(MYSQLI_ASSOC));
@@ -54,14 +73,14 @@ function portal_consent_upsert(mysqli $db, string $idno, string $type, bool $gra
     $grantTime = $granted ? $now : null;
     $revokeTime = $granted ? null : $now;
     $value = (int) $granted;
-    $stmt = $db->prepare('INSERT INTO consents (employee_id,type,granted,granted_at,revoked_at,updated_at)
+    $stmt = $db->prepare('INSERT INTO consents (idno,type,granted,granted_at,revoked_at,updated_at)
         VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE granted=VALUES(granted),
         granted_at=IF(VALUES(granted)=1,VALUES(granted_at),granted_at),
         revoked_at=VALUES(revoked_at),updated_at=VALUES(updated_at)');
     $stmt->bind_param('ssisss', $idno, $type, $value, $grantTime, $revokeTime, $now);
     $stmt->execute();
     $stmt->close();
-    $stmt = $db->prepare('SELECT * FROM consents WHERE employee_id=? AND type=?');
+    $stmt = $db->prepare('SELECT * FROM consents WHERE idno=? AND type=?');
     $stmt->bind_param('ss', $idno, $type);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();

@@ -5,12 +5,43 @@ function portal_notify(mysqli $db, string $idno, string $title, string $body, ar
 {
     $json = json_encode($data, JSON_THROW_ON_ERROR);
     $now = portal_now()->format('Y-m-d H:i:s');
-    $stmt = $db->prepare('INSERT IGNORE INTO portal_notifications (employee_id,title,body,data,dedupe_key,created_at) VALUES (?,?,?,?,?,?)');
-    $stmt->bind_param('ssssss', $idno, $title, $body, $json, $dedupeKey, $now);
-    $stmt->execute();
-    $id = $stmt->affected_rows > 0 ? (int) $db->insert_id : null;
-    $stmt->close();
-    return $id;
+    $ownTransaction = (int) $db->query('SELECT @@in_transaction active')->fetch_assoc()['active'] === 0;
+    if ($ownTransaction) $db->begin_transaction();
+    else $db->query('SAVEPOINT portal_notify');
+    try {
+        $exists = false;
+        if ($dedupeKey !== null) {
+            $stmt = $db->prepare('SELECT id FROM push_outbox WHERE event_key=? LIMIT 1');
+            $stmt->bind_param('s', $dedupeKey);
+            $stmt->execute();
+            $exists = (bool) $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+        }
+        $id = null;
+        if (!$exists) {
+            $stmt = $db->prepare('INSERT IGNORE INTO portal_notifications (idno,title,body,data,dedupe_key,created_at) VALUES (?,?,?,?,?,?)');
+            $stmt->bind_param('ssssss', $idno, $title, $body, $json, $dedupeKey, $now);
+            $stmt->execute();
+            $id = $stmt->affected_rows > 0 ? (int) $db->insert_id : null;
+            $stmt->close();
+            if ($id !== null) {
+                $stmt = $db->prepare('INSERT INTO push_outbox (notification_id,idno,event_key,title,body,data,created_at,next_attempt_at) VALUES (?,?,?,?,?,?,?,?)');
+                $stmt->bind_param('isssssss', $id, $idno, $dedupeKey, $title, $body, $json, $now, $now);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+        if ($ownTransaction) $db->commit();
+        else $db->query('RELEASE SAVEPOINT portal_notify');
+        return $id;
+    } catch (Throwable $e) {
+        if ($ownTransaction) $db->rollback();
+        else {
+            $db->query('ROLLBACK TO SAVEPOINT portal_notify');
+            $db->query('RELEASE SAVEPOINT portal_notify');
+        }
+        throw $e;
+    }
 }
 
 function portal_notification_dto(array $row): array
@@ -26,13 +57,13 @@ function portal_notifications_page(mysqli $db, string $idno, int $page, int $per
 {
     $page = max(1, $page);
     $perPage = max(1, min(100, $perPage));
-    $stmt = $db->prepare('SELECT COUNT(*) n FROM portal_notifications WHERE employee_id=?');
+    $stmt = $db->prepare('SELECT COUNT(*) n FROM portal_notifications WHERE idno=?');
     $stmt->bind_param('s', $idno);
     $stmt->execute();
     $total = (int) $stmt->get_result()->fetch_assoc()['n'];
     $stmt->close();
     $offset = ($page - 1) * $perPage;
-    $stmt = $db->prepare('SELECT * FROM portal_notifications WHERE employee_id=? ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?');
+    $stmt = $db->prepare('SELECT * FROM portal_notifications WHERE idno=? ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?');
     $stmt->bind_param('sii', $idno, $perPage, $offset);
     $stmt->execute();
     $data = array_map('portal_notification_dto', $stmt->get_result()->fetch_all(MYSQLI_ASSOC));
@@ -47,7 +78,7 @@ function portal_notifications_page(mysqli $db, string $idno, int $page, int $per
 
 function portal_unread_count(mysqli $db, string $idno): int
 {
-    $stmt = $db->prepare('SELECT COUNT(*) n FROM portal_notifications WHERE employee_id=? AND read_at IS NULL');
+    $stmt = $db->prepare('SELECT COUNT(*) n FROM portal_notifications WHERE idno=? AND read_at IS NULL');
     $stmt->bind_param('s', $idno);
     $stmt->execute();
     $count = (int) $stmt->get_result()->fetch_assoc()['n'];
@@ -58,11 +89,11 @@ function portal_unread_count(mysqli $db, string $idno): int
 function portal_mark_read(mysqli $db, string $idno, string $id): ?array
 {
     $now = portal_now()->format('Y-m-d H:i:s');
-    $stmt = $db->prepare('UPDATE portal_notifications SET read_at=COALESCE(read_at,?) WHERE employee_id=? AND id=?');
+    $stmt = $db->prepare('UPDATE portal_notifications SET read_at=COALESCE(read_at,?) WHERE idno=? AND id=?');
     $stmt->bind_param('sss', $now, $idno, $id);
     $stmt->execute();
     $stmt->close();
-    $stmt = $db->prepare('SELECT * FROM portal_notifications WHERE employee_id=? AND id=?');
+    $stmt = $db->prepare('SELECT * FROM portal_notifications WHERE idno=? AND id=?');
     $stmt->bind_param('ss', $idno, $id);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
@@ -73,7 +104,7 @@ function portal_mark_read(mysqli $db, string $idno, string $id): ?array
 function portal_mark_all_read(mysqli $db, string $idno): int
 {
     $now = portal_now()->format('Y-m-d H:i:s');
-    $stmt = $db->prepare('UPDATE portal_notifications SET read_at=? WHERE employee_id=? AND read_at IS NULL');
+    $stmt = $db->prepare('UPDATE portal_notifications SET read_at=? WHERE idno=? AND read_at IS NULL');
     $stmt->bind_param('ss', $now, $idno);
     $stmt->execute();
     $count = $stmt->affected_rows;
@@ -83,7 +114,7 @@ function portal_mark_all_read(mysqli $db, string $idno): int
 
 function portal_delete_notification(mysqli $db, string $idno, string $id): bool
 {
-    $stmt = $db->prepare('DELETE FROM portal_notifications WHERE employee_id=? AND id=?');
+    $stmt = $db->prepare('DELETE FROM portal_notifications WHERE idno=? AND id=?');
     $stmt->bind_param('ss', $idno, $id);
     $stmt->execute();
     $deleted = $stmt->affected_rows > 0;
@@ -93,7 +124,7 @@ function portal_delete_notification(mysqli $db, string $idno, string $id): bool
 
 function portal_delete_all(mysqli $db, string $idno): int
 {
-    $stmt = $db->prepare('DELETE FROM portal_notifications WHERE employee_id=?');
+    $stmt = $db->prepare('DELETE FROM portal_notifications WHERE idno=?');
     $stmt->bind_param('s', $idno);
     $stmt->execute();
     $count = $stmt->affected_rows;
@@ -117,7 +148,7 @@ function portal_pending_break_alerts(mysqli $db, string $idno, ?string $now = nu
     if ($nowSeconds >= $start + 3600) $candidates["overbreak:{$break['id']}"] = 'Overbreak';
     $pending = [];
     foreach ($candidates as $key => $title) {
-        $stmt = $db->prepare('SELECT id FROM portal_notifications WHERE dedupe_key=? LIMIT 1');
+        $stmt = $db->prepare('SELECT id FROM push_outbox WHERE event_key=? LIMIT 1');
         $stmt->bind_param('s', $key);
         $stmt->execute();
         $exists = $stmt->get_result()->fetch_assoc();
@@ -138,10 +169,10 @@ function portal_materialize_break_alerts(mysqli $db, string $idno, ?string $now 
 
 function portal_due_break_alerts(mysqli $db, ?string $now = null): array
 {
-    $employees = $db->query('SELECT DISTINCT employee_id FROM attendance WHERE time_out IS NULL')->fetch_all(MYSQLI_ASSOC);
+    $employees = $db->query('SELECT DISTINCT idno FROM attendance WHERE time_out IS NULL')->fetch_all(MYSQLI_ASSOC);
     $due = [];
     foreach ($employees as $employee) {
-        $idno = (string) $employee['employee_id'];
+        $idno = (string) $employee['idno'];
         if (portal_pending_break_alerts($db, $idno, $now) !== []) $due[] = $idno;
     }
     return $due;

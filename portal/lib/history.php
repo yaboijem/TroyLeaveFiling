@@ -47,7 +47,7 @@ function portal_history_page(mysqli $db, string $idno, ?string $from, ?string $t
 {
     $page = max(1, $page);
     $perPage = max(1, min(100, $perPage));
-    $where = 'a.employee_id=?';
+    $where = 'a.idno=?';
     $values = [$idno];
     $types = 's';
     if ($from !== null) { $where .= ' AND a.work_date>=?'; $values[] = $from; $types .= 's'; }
@@ -72,7 +72,7 @@ function portal_history_page(mysqli $db, string $idno, ?string $from, ?string $t
             $punchMap[$punch['attendance_id']][] = $punch;
         }
         foreach ($db->query("SELECT attendance_id,type,severity FROM fraud_flags WHERE attendance_id IN ({$ids}) ORDER BY id")->fetch_all(MYSQLI_ASSOC) as $flag) {
-            $flagMap[$flag['attendance_id']][] = ['type' => $flag['type'], 'severity' => $flag['severity']];
+            $flagMap[$flag['attendance_id']][] = ['type' => $flag['type'], 'label' => portal_fraud_label($flag['type']), 'severity' => $flag['severity']];
         }
     }
     $data = [];

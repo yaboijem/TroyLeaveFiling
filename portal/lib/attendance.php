@@ -31,7 +31,7 @@ function portal_handle_punch_request(mysqli $db, string $idno, string $type, arr
 
 function portal_open_shift(mysqli $db, string $idno): ?array
 {
-    $stmt = $db->prepare('SELECT * FROM attendance WHERE employee_id=? AND time_out IS NULL ORDER BY time_in DESC,id DESC LIMIT 1');
+    $stmt = $db->prepare('SELECT * FROM attendance WHERE idno=? AND time_out IS NULL ORDER BY time_in DESC,id DESC LIMIT 1');
     $stmt->bind_param('s', $idno);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
@@ -77,7 +77,7 @@ function portal_close_session(mysqli $db, string $idno, ?string $at, string $not
         $uuid = bin2hex(random_bytes(16));
         $uuid = substr($uuid,0,8) . '-' . substr($uuid,8,4) . '-' . substr($uuid,12,4) . '-' . substr($uuid,16,4) . '-' . substr($uuid,20);
         $notes = 'Closed by ' . $by . ($note !== '' ? ': ' . $note : '');
-        $stmt = $db->prepare("INSERT INTO attendance_punches (attendance_id,employee_id,uuid,type,punched_at,source,notes,created_at) VALUES (?,?,?,'time_out',?,'admin',?,?)");
+        $stmt = $db->prepare("INSERT INTO attendance_punches (attendance_id,idno,uuid,type,punched_at,source,notes,created_at) VALUES (?,?,?,'time_out',?,'admin',?,?)");
         $stmt->bind_param('isssss', $id, $idno, $uuid, $time, $notes, $now);
         $stmt->execute();
         $punchId = (int) $db->insert_id;
@@ -210,7 +210,7 @@ function portal_work_punches(mysqli $db, string $idno): array
 {
     $shift = portal_open_shift($db, $idno);
     if ($shift === null) {
-        $stmt = $db->prepare('SELECT * FROM attendance WHERE employee_id=? ORDER BY time_in DESC,id DESC LIMIT 1');
+        $stmt = $db->prepare('SELECT * FROM attendance WHERE idno=? ORDER BY time_in DESC,id DESC LIMIT 1');
         $stmt->bind_param('s', $idno);
         $stmt->execute();
         $shift = $stmt->get_result()->fetch_assoc();
@@ -255,7 +255,7 @@ function portal_punch(mysqli $db, string $idno, string $type, array $input, ?arr
         $existing = $stmt->get_result()->fetch_assoc();
         $stmt->close();
         if ($existing) {
-            if ((string) $existing['employee_id'] !== $idno) {
+            if ((string) $existing['idno'] !== $idno) {
                 portal_attendance_conflict($db, $idno, 'This punch reference is already in use.');
             }
             $dto = portal_stored_punch_dto($db, $existing);
@@ -298,7 +298,7 @@ function portal_punch(mysqli $db, string $idno, string $type, array $input, ?arr
         $longitude = isset($input['longitude']) ? (float) $input['longitude'] : null;
         $accuracy = isset($input['accuracy_meters']) ? (float) $input['accuracy_meters'] : null;
         $location = portal_resolve_location($db, $idno, $latitude, $longitude, $accuracy);
-        $stmt = $db->prepare('SELECT * FROM attendance_punches WHERE employee_id=? AND latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY punched_at DESC,id DESC LIMIT 1');
+        $stmt = $db->prepare('SELECT * FROM attendance_punches WHERE idno=? AND latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY punched_at DESC,id DESC LIMIT 1');
         $stmt->bind_param('s', $idno);
         $stmt->execute();
         $previousGps = $stmt->get_result()->fetch_assoc() ?: null;
@@ -312,7 +312,7 @@ function portal_punch(mysqli $db, string $idno, string $type, array $input, ?arr
         if ($type === 'time_in') {
             $date = portal_now()->format('Y-m-d');
             $branchId = $location['branch_id'];
-            $stmt = $db->prepare('INSERT INTO attendance (employee_id,branch_id,work_date,time_in,source,notes,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)');
+            $stmt = $db->prepare('INSERT INTO attendance (idno,branch_id,work_date,time_in,source,notes,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)');
             $stmt->bind_param('sissssss', $idno, $branchId, $date, $now, $source, $notes, $now, $now);
             $stmt->execute();
             $attendanceId = (int) $db->insert_id;
@@ -347,7 +347,7 @@ function portal_punch(mysqli $db, string $idno, string $type, array $input, ?arr
         $targetType = $location['verified_against_type'];
         $targetId = $location['verified_against_id'];
         $stmt = $db->prepare('INSERT INTO attendance_punches
-            (attendance_id,employee_id,uuid,type,punched_at,latitude,longitude,gps_accuracy_meters,
+            (attendance_id,idno,uuid,type,punched_at,latitude,longitude,gps_accuracy_meters,
             distance_from_branch_meters,is_within_radius,verified_against_type,verified_against_id,source,notes,created_at)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
         $stmt->bind_param('issssddddisisss', $attendanceId, $idno, $uuid, $type, $now, $latitude, $longitude, $accuracy, $distance, $within, $targetType, $targetId, $source, $notes, $now);

@@ -37,7 +37,7 @@ return [
         portal_push_subscribe(portal_test_db(), '1016', push_test_input());
         $rows = portal_test_db()->query('SELECT * FROM push_subscriptions')->fetch_all(MYSQLI_ASSOC);
         portal_assert_same(1, count($rows));
-        portal_assert_same('1016', $rows[0]['employee_id']);
+        portal_assert_same('1016', $rows[0]['idno']);
         portal_assert_same('2026-11-19 09:00:00', $rows[0]['updated_at']);
     },
     'subscribe validates endpoint and keys' => function (): void {

@@ -1,8 +1,25 @@
 <?php 
   if (!isset($_SESSION)) {session_start();} //To recognize the $_SESSION variable you have set
 
+  $returnTo = '';
+  if (isset($_GET['return']) && is_string($_GET['return'])) {
+    $candidate = $_GET['return'];
+    $decoded = rawurldecode($candidate);
+    $parts = parse_url($candidate);
+    $path = is_array($parts) ? (string) ($parts['path'] ?? '') : '';
+    $portalPath = $path === '/TroyLeaveFiling/portal' || str_starts_with($path, '/TroyLeaveFiling/portal/');
+    if (is_array($parts) && !isset($parts['scheme']) && !isset($parts['host']) && $portalPath
+        && !str_contains($candidate, '//') && !str_contains($candidate, '\\') && !str_contains($decoded, '..')
+        && !str_contains($decoded, '//') && !str_contains($decoded, '\\')
+        && !preg_match('/[<>"\']/', $candidate) && !preg_match('/%2e|%2f|%5c/i', $candidate)) {
+      $returnTo = $candidate;
+    }
+  }
+
   if (isset($_SESSION['adminname']) || isset($_SESSION['admin_or_user']))  { //To check if the admin is log in already it will go back to dashboard.php
-    echo "<script>window.open('dashboard.php','_self')</script>";
+    $target = $returnTo !== '' ? $returnTo : 'dashboard.php';
+    echo "<script>window.open(" . json_encode($target, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ",'_self')</script>";
+    exit;
   }
 ?>
 
@@ -111,6 +128,7 @@
     <script src="plugins/sweetalert2/sweetalert.min.js"></script>
 
     <script>
+      var returnTo = <?php echo json_encode($returnTo, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
       function showpw() {
         var x = document.getElementById("user_login_password");
         if (x.type === "password") {
@@ -192,7 +210,7 @@
                 dangerMode: true,
               });
             } else if ($.trim(response) == "1") {
-              window.open('dashboard.php','_self')
+              window.open(returnTo || 'dashboard.php','_self')
             } else if ($.trim(response) == "2") {
               swal({
                 title: "Username is Inactive!",

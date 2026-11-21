@@ -26,7 +26,7 @@ date_default_timezone_set((string) (portal_config()['timezone'] ?? 'Asia/Manila'
 
 if (PHP_SAPI !== 'cli') {
     header('Content-Type: application/json; charset=utf-8');
-    header('X-Content-Type-Options: nosniff');
+    portal_send_security_headers();
 
     if (session_status() === PHP_SESSION_NONE) {
         $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')

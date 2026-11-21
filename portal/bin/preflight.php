@@ -28,7 +28,7 @@ try {
     $db = portal_db();
     preflight_check('database connected', true);
     $tables = array_column($db->query('SHOW TABLES')->fetch_all(MYSQLI_NUM), 0);
-    foreach (['attendance','attendance_punches','branches','dtr_employee_profile','app_settings','consents','home_locations','portal_notifications','push_subscriptions','fraud_flags','login_attempts'] as $table) {
+    foreach (['attendance','attendance_punches','branches','dtr_employee_profile','app_settings','consents','home_locations','portal_notifications','push_subscriptions','fraud_flags','login_attempts','push_outbox'] as $table) {
         preflight_check('table ' . $table, in_array($table, $tables, true));
     }
 } catch (Throwable $e) { preflight_check('database: ' . $e->getMessage(), false); }

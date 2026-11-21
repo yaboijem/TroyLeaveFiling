@@ -8,7 +8,7 @@ function alert_test_break(?string $kind = '15_min'): int
     $db = portal_test_db();
     $due = $kind === '15_min' ? '2026-11-19 12:15:00' : null;
     $uuid = bin2hex(random_bytes(18));
-    $stmt = $db->prepare("INSERT INTO attendance_punches (attendance_id,employee_id,uuid,type,punched_at,break_kind,expected_end_at,created_at) VALUES (?,'1015',?,'break_in','2026-11-19 12:00:00',?,?,'2026-11-19 12:00:00')");
+    $stmt = $db->prepare("INSERT INTO attendance_punches (attendance_id,idno,uuid,type,punched_at,break_kind,expected_end_at,created_at) VALUES (?,'1015',?,'break_in','2026-11-19 12:00:00',?,?,'2026-11-19 12:00:00')");
     $stmt->bind_param('isss', $p['attendance_id'], $uuid, $kind, $due);
     $stmt->execute();
     return (int) $db->insert_id;

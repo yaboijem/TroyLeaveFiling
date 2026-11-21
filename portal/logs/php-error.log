@@ -22,3 +22,29 @@
 [20-Nov-2026 01:47:04 Asia/Manila] PHP Warning:  file_get_contents(M:\TroyLeaveFiling\TroyLeaveFiling\portal/uploads/.htaccess): Failed to open stream: No such file or directory in M:\TroyLeaveFiling\TroyLeaveFiling\portal\tests\photo_test.php on line 59
 [20-Nov-2026 04:18:35 Europe/Berlin] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\con83BE.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
 [20-Nov-2026 11:18:37 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20
+[20-Nov-2026 04:20:50 Europe/Berlin] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\con94AC.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[20-Nov-2026 11:20:53 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20
+[20-Nov-2026 04:22:00 Europe/Berlin] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\conA6D8.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[20-Nov-2026 11:22:02 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20
+[20-Nov-2026 11:48:10 Asia/Manila] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\con9B79.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[20-Nov-2026 11:48:12 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20
+[21-Nov-2026 13:29:43 Europe/Berlin] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\conF290.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[21-Nov-2026 20:29:45 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20
+[21-Nov-2026 13:31:03 Europe/Berlin] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\con294B.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[21-Nov-2026 20:31:05 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20
+[21-Nov-2026 20:54:04 Asia/Manila] Portal API error: Illegal mix of collations (utf8mb4_unicode_ci,IMPLICIT) and (utf8mb4_general_ci,IMPLICIT) for operation '=' in M:\TroyLeaveFiling\portal\lib\user.php:87
+[21-Nov-2026 21:03:37 Asia/Manila] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\conFAD6.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[21-Nov-2026 21:03:39 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20
+[22-Nov-2026 03:11:43 Asia/Manila] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\conFBD9.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[22-Nov-2026 03:11:45 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20
+[22-Nov-2026 03:11:47 Asia/Manila] PHP Warning:  Undefined array key "label" in M:\TroyLeaveFiling\portal\tests\history_test.php on line 83
+[22-Nov-2026 03:11:51 Asia/Manila] PHP Warning:  Undefined array key "consents" in M:\TroyLeaveFiling\portal\tests\user_test.php on line 76
+[22-Nov-2026 03:12:02 Asia/Manila] PHP Warning:  Undefined array key "consents" in M:\TroyLeaveFiling\portal\tests\user_test.php on line 76
+[22-Nov-2026 03:12:46 Asia/Manila] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\conEFCE.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[22-Nov-2026 03:12:48 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20
+[22-Nov-2026 03:13:08 Asia/Manila] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\con4716.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[22-Nov-2026 03:13:10 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20
+[22-Nov-2026 03:26:31 Asia/Manila] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\con8751.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[22-Nov-2026 03:26:33 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20
+[22-Nov-2026 03:43:12 Asia/Manila] Portal API error: Portal config file is missing: M:\TroyLeaveFiling\portal\tests\conCEFF.tmp in M:\TroyLeaveFiling\portal\lib\core.php:18
+[22-Nov-2026 03:43:14 Asia/Manila] Portal API error: No connection could be made because the target machine actively refused it in M:\TroyLeaveFiling\portal\lib\db.php:20

@@ -75,4 +75,14 @@ return [
         portal_assert_same("fraud:{$p['id']}:out_of_radius", $row['dedupe_key'] ?? null);
         portal_assert_same(1, portal_unread_count($db, '1015'));
     },
+    'fraud notification uses a human label' => function (): void {
+        $db = portal_test_db();
+        $p = portal_test_evidence();
+        $p['is_within_radius'] = 0;
+        portal_evaluate_fraud($db, $p, null, $p['punched_at']);
+
+        $row = $db->query('SELECT body FROM portal_notifications')->fetch_assoc();
+
+        portal_assert_same('An attendance check was flagged: Out of radius', $row['body'] ?? null);
+    },
 ];

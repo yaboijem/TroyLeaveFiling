@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 CREATE TABLE IF NOT EXISTS attendance (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  employee_id VARCHAR(100) NOT NULL,
+  idno VARCHAR(100) NOT NULL,
   branch_id BIGINT UNSIGNED NULL,
   work_date DATE NOT NULL,
   time_in DATETIME NOT NULL,
@@ -54,9 +54,9 @@ CREATE TABLE IF NOT EXISTS attendance (
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   PRIMARY KEY (id),
-  KEY idx_att_emp_date (employee_id, work_date),
-  KEY idx_att_emp_in (employee_id, time_in),
-  KEY idx_att_open (employee_id, time_out),
+  KEY idx_att_emp_date (idno, work_date),
+  KEY idx_att_emp_in (idno, time_in),
+  KEY idx_att_open (idno, time_out),
   KEY idx_att_timeout (time_out),
   KEY idx_att_branch (branch_id),
   CONSTRAINT fk_att_branch FOREIGN KEY (branch_id)
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS attendance (
 CREATE TABLE IF NOT EXISTS attendance_punches (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   attendance_id BIGINT UNSIGNED NOT NULL,
-  employee_id VARCHAR(100) NOT NULL,
+  idno VARCHAR(100) NOT NULL,
   uuid CHAR(36) NOT NULL,
   type VARCHAR(16) NOT NULL,
   punched_at DATETIME NOT NULL,
@@ -88,26 +88,26 @@ CREATE TABLE IF NOT EXISTS attendance_punches (
   PRIMARY KEY (id),
   UNIQUE KEY uq_punch_uuid (uuid),
   KEY idx_punch_att (attendance_id, punched_at),
-  KEY idx_punch_emp (employee_id, punched_at),
+  KEY idx_punch_emp (idno, punched_at),
   CONSTRAINT fk_punch_att FOREIGN KEY (attendance_id)
     REFERENCES attendance (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS consents (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  employee_id VARCHAR(100) NOT NULL,
+  idno VARCHAR(100) NOT NULL,
   type VARCHAR(32) NOT NULL,
   granted TINYINT(1) NOT NULL DEFAULT 0,
   granted_at DATETIME NULL,
   revoked_at DATETIME NULL,
   updated_at DATETIME NOT NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_consent_emp_type (employee_id, type)
+  UNIQUE KEY uq_consent_emp_type (idno, type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS home_locations (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  employee_id VARCHAR(100) NOT NULL,
+  idno VARCHAR(100) NOT NULL,
   label VARCHAR(255) NOT NULL,
   latitude DECIMAL(10,7) NOT NULL,
   longitude DECIMAL(10,7) NOT NULL,
@@ -123,12 +123,12 @@ CREATE TABLE IF NOT EXISTS home_locations (
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   PRIMARY KEY (id),
-  KEY idx_home_emp_status (employee_id, status)
+  KEY idx_home_emp_status (idno, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS portal_notifications (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  employee_id VARCHAR(100) NOT NULL,
+  idno VARCHAR(100) NOT NULL,
   title VARCHAR(255) NOT NULL,
   body TEXT NOT NULL,
   data JSON NULL,
@@ -137,12 +137,12 @@ CREATE TABLE IF NOT EXISTS portal_notifications (
   created_at DATETIME NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_notif_dedupe (dedupe_key),
-  KEY idx_notif_emp (employee_id, read_at, created_at)
+  KEY idx_notif_emp (idno, read_at, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  employee_id VARCHAR(100) NOT NULL,
+  idno VARCHAR(100) NOT NULL,
   endpoint_hash CHAR(64) NOT NULL,
   endpoint VARCHAR(2048) NOT NULL,
   public_key VARCHAR(255) NOT NULL,
@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
   updated_at DATETIME NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_push_endpoint_hash (endpoint_hash),
-  KEY idx_push_employee (employee_id)
+  KEY idx_push_employee (idno)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS fraud_flags (

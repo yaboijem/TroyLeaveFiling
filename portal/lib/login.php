@@ -174,8 +174,9 @@ function portal_handle_logout(mysqli $db, array $auth, array $params): array
     $idno = (string) ($auth['idno'] ?? '');
 
     if ($idno !== '') {
-        $stmt = $db->prepare('UPDATE employeefiletbl SET session_token = NULL WHERE idno = ?');
-        $stmt->bind_param('s', $idno);
+        $token = (string) ($auth['session_token'] ?? '');
+        $stmt = $db->prepare('UPDATE employeefiletbl SET session_token = NULL WHERE idno = ? AND session_token = ?');
+        $stmt->bind_param('ss', $idno, $token);
         $stmt->execute();
         $stmt->close();
     }

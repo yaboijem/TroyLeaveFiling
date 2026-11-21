@@ -2,6 +2,17 @@ Options -Indexes
 DirectoryIndex index.html
 RewriteEngine On
 
+# Security headers for the static app shell. The API sends the same headers in PHP.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "no-referrer"
+    Header always set Permissions-Policy "camera=(self), geolocation=(self), microphone=()"
+    Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+    Header always unset X-Powered-By
+</IfModule>
+
 # Keep implementation, operational tooling and evidence private.
 RewriteRule ^(?:lib|bin|sql|tests|vendor|logs|uploads)(?:/|$) - [F,L,NC]
 <FilesMatch "^(?:composer\.(?:json|lock)|routes\.php|.*\.log)$">

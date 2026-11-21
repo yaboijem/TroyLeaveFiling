@@ -62,4 +62,31 @@ return [
     'unknown employee returns null' => function (): void {
         portal_assert_null(portal_user_dto(portal_test_db(), '999999'));
     },
+
+    'user dto exposes consent flags' => function (): void {
+        $db = portal_test_db();
+        portal_consent_upsert($db, '1015', 'gps_location', true);
+        portal_consent_upsert($db, '1015', 'biometric_photos', false);
+
+        $dto = portal_user_dto($db, '1015');
+
+        portal_assert_same([
+            'biometric_photos' => false,
+            'gps_location' => true,
+            'device_alerts' => false,
+        ], $dto['employee']['consents'], 'employee.consents');
+    },
+
+    'user dto survives mixed table collations' => function (): void {
+        $db = portal_test_db();
+        $db->query('ALTER TABLE dtr_employee_profile CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci');
+
+        try {
+            $dto = portal_user_dto($db, '1015');
+            portal_assert_true(is_array($dto), 'Expected a user DTO with mixed collations.');
+            portal_assert_same('SICANGCO, JIRIEL L.', $dto['name'], 'name');
+        } finally {
+            $db->query('ALTER TABLE dtr_employee_profile CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+        }
+    },
 ];

@@ -279,6 +279,19 @@
                 </li>';
             }
 
+            if (isset($_SESSION['idno'], $_SESSION['session_token'])
+                && ($pagedisplayfor=='admin' || $pagedisplayfor=='user' || $pagedisplayfor=='approver')) {
+              echo '
+                <li class="nav-item">
+                  <a href="portal/" target="_top" class="nav-link" title="Open the DTR Portal">
+                    <i class="nav-icon fas fa-clock"></i>
+                    <p>
+                      DTR Portal
+                    </p>
+                  </a>
+                </li>';
+            }
+
             if ($pagedisplayfor=='admin' || $pagedisplayfor=='approver') {
               echo '
                 <li class="nav-item">

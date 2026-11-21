@@ -88,7 +88,7 @@ return [
 
         foreach ($rows as $row) {
             $isUnique = (int) $row['non_unique'] === 0;
-            if ($isUnique && $row['cols'] === 'employee_id,work_date') {
+            if ($isUnique && $row['cols'] === 'idno,work_date') {
                 throw new RuntimeException('attendance must not be unique per employee and work_date.');
             }
         }
