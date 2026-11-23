@@ -77,6 +77,25 @@ function portal_require_auth(mysqli $db): array
     return $row;
 }
 
+function portal_require_role(?array $auth, array $roles): array
+{
+    if ($auth === null) {
+        throw new PortalApiException('Please sign in to continue.', 'unauthenticated', 401);
+    }
+
+    $role = strtolower(trim((string) ($auth['usertype'] ?? '')));
+    $allowed = array_map(
+        static fn (string $allowedRole): string => strtolower(trim($allowedRole)),
+        $roles
+    );
+
+    if ($role === '' || !in_array($role, $allowed, true)) {
+        throw new PortalApiException('You do not have access to this area.', 'forbidden', 403);
+    }
+
+    return $auth;
+}
+
 function portal_active(mixed $value): bool
 {
     if (is_bool($value)) {
