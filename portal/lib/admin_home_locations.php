@@ -211,3 +211,56 @@ function portal_admin_home_locations_show(mysqli $db, array $auth, int $id): arr
 
     return ['data' => portal_admin_home_location_dto($row, $approved)];
 }
+
+function portal_admin_home_locations_review(mysqli $db, array $auth, int $id, array $input): array
+{
+    portal_require_role($auth, ['admin', 'approver']);
+
+    $errors = [];
+    $action = strtolower(trim((string) ($input['action'] ?? '')));
+
+    if (!in_array($action, ['approve', 'reject'], true)) {
+        $errors['action'][] = 'Choose approve or reject.';
+    }
+
+    $note = trim((string) ($input['note'] ?? ''));
+
+    if ($action === 'reject' && $note === '') {
+        $errors['note'][] = 'Enter a reason for rejecting this home location.';
+    }
+
+    if ($errors !== []) {
+        throw new PortalApiException('The given data was invalid.', 'validation_error', 422, ['errors' => $errors]);
+    }
+
+    $row = portal_admin_home_location_row($db, $id);
+    $reviewerIdno = trim((string) ($auth['idno'] ?? ''));
+
+    if ($reviewerIdno !== '' && (string) $row['idno'] === $reviewerIdno) {
+        throw new PortalApiException(
+            'You cannot review your own home location. Ask another admin or approver.',
+            'cannot_review_own_pin',
+            403
+        );
+    }
+
+    if ((string) $row['status'] !== 'pending') {
+        throw new PortalApiException(
+            'This request is no longer reviewable. Submit a new home location.',
+            'invalid_action',
+            422
+        );
+    }
+
+    $reviewer = trim((string) ($auth['employeename'] ?? ''));
+
+    if ($reviewer === '') {
+        $reviewer = trim((string) ($auth['idno'] ?? 'HR'));
+    }
+
+    $reviewer = mb_substr($reviewer !== '' ? $reviewer : 'HR', 0, 100);
+
+    portal_review_home_location($db, $id, $action, $note !== '' ? $note : null, $reviewer);
+
+    return portal_admin_home_locations_show($db, $auth, $id);
+}

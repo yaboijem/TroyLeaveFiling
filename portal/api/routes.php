@@ -68,6 +68,8 @@ return [
         => portal_admin_home_locations_index($db, $auth ?? [], $_GET),
     'GET /api/admin/home-locations/{id}' => static fn (mysqli $db, ?array $auth, array $params): array
         => portal_admin_home_locations_show($db, $auth ?? [], (int) $params['id']),
+    'POST /api/admin/home-locations/{id}/review' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_home_locations_review($db, $auth ?? [], (int) $params['id'], portal_request_input()),
 
     'POST /api/login' => [
         'public' => true,

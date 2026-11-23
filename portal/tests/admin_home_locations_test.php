@@ -165,4 +165,136 @@ return [
 
         portal_assert_same(1, count($result['data']), 'approver can review');
     },
+
+    'approve sets reviewer fields and notifies' => function (): void {
+        $db = portal_test_db();
+        $id = admin_home_pin($db, '1019', 'pending');
+
+        $result = portal_admin_home_locations_review(
+            $db,
+            admin_home_auth(),
+            $id,
+            ['action' => 'approve', 'note' => 'Looks good.']
+        );
+
+        portal_assert_same('approved', $result['data']['status'], 'status');
+        portal_assert_same('SICANGCO, JIRIEL L.', $result['data']['reviewed_by'], 'reviewer');
+        portal_assert_true($result['data']['reviewed_at'] !== null, 'reviewed_at');
+        portal_assert_same('Looks good.', $result['data']['review_note'], 'note');
+
+        $notification = $db->query(
+            "SELECT * FROM portal_notifications WHERE idno = '1019' AND title = 'Home location approved' LIMIT 1"
+        )->fetch_assoc();
+        portal_assert_true(is_array($notification), 'employee notification');
+    },
+
+    'approve supersedes previous approved pin' => function (): void {
+        $db = portal_test_db();
+        $old = admin_home_pin($db, '1019', 'approved', 'Old Home');
+        $new = admin_home_pin($db, '1019', 'pending', 'New Home');
+
+        portal_admin_home_locations_review($db, admin_home_auth(), $new, ['action' => 'approve']);
+
+        $oldRow = $db->query("SELECT * FROM home_locations WHERE id = {$old}")->fetch_assoc();
+        portal_assert_same('rejected', $oldRow['status'], 'old status');
+        portal_assert_same('Superseded by approved home location.', $oldRow['review_note'], 'old note');
+
+        $newRow = $db->query("SELECT * FROM home_locations WHERE id = {$new}")->fetch_assoc();
+        portal_assert_same('approved', $newRow['status'], 'new status');
+    },
+
+    'reject requires a note' => function (): void {
+        $db = portal_test_db();
+        $id = admin_home_pin($db, '1019', 'pending');
+
+        $error = portal_assert_api_error(
+            fn () => portal_admin_home_locations_review($db, admin_home_auth(), $id, ['action' => 'reject']),
+            'validation_error',
+            422
+        );
+
+        portal_assert_true(isset($error->details['errors']['note']), 'Expected a note error.');
+    },
+
+    'reject stores the note' => function (): void {
+        $db = portal_test_db();
+        $id = admin_home_pin($db, '1019', 'pending');
+
+        $result = portal_admin_home_locations_review(
+            $db,
+            admin_home_auth(),
+            $id,
+            ['action' => 'reject', 'note' => 'Pin is too far from the house.']
+        );
+
+        portal_assert_same('rejected', $result['data']['status'], 'status');
+        portal_assert_same('Pin is too far from the house.', $result['data']['review_note'], 'note');
+    },
+
+    'approver can approve' => function (): void {
+        $db = portal_test_db();
+        $id = admin_home_pin($db, '1019', 'pending');
+
+        $result = portal_admin_home_locations_review(
+            $db,
+            admin_home_auth('approver'),
+            $id,
+            ['action' => 'approve']
+        );
+
+        portal_assert_same('approved', $result['data']['status'], 'status');
+    },
+
+    'employee cannot review' => function (): void {
+        $db = portal_test_db();
+        $id = admin_home_pin($db, '1019', 'pending');
+
+        portal_assert_api_error(
+            fn () => portal_admin_home_locations_review($db, admin_home_auth(''), $id, ['action' => 'approve']),
+            'forbidden',
+            403
+        );
+    },
+
+    'self-review is rejected' => function (): void {
+        $db = portal_test_db();
+        $id = admin_home_pin($db, '1015', 'pending');
+
+        $error = portal_assert_api_error(
+            fn () => portal_admin_home_locations_review($db, admin_home_auth(), $id, ['action' => 'approve']),
+            'cannot_review_own_pin',
+            403
+        );
+
+        portal_assert_true($error instanceof Throwable, 'self-review error');
+        $row = $db->query("SELECT status FROM home_locations WHERE id = {$id}")->fetch_assoc();
+        portal_assert_same('pending', $row['status'], 'self-review must not change status');
+    },
+
+    'already reviewed pin returns 422' => function (): void {
+        $db = portal_test_db();
+        $id = admin_home_pin($db, '1019', 'approved');
+
+        portal_assert_api_error(
+            fn () => portal_admin_home_locations_review(
+                $db,
+                admin_home_auth('approver'),
+                $id,
+                ['action' => 'reject', 'note' => 'Too late.']
+            ),
+            'invalid_action',
+            422
+        );
+
+        $row = $db->query("SELECT status FROM home_locations WHERE id = {$id}")->fetch_assoc();
+        portal_assert_same('approved', $row['status'], 'reviewed pin must not change');
+    },
+
+    'review unknown pin returns 404' => function (): void {
+        portal_assert_api_error(
+            fn () => portal_admin_home_locations_review(portal_test_db(), admin_home_auth(), 99999, ['action' => 'approve']),
+            'not_found',
+            404
+        );
+    },
 ];
