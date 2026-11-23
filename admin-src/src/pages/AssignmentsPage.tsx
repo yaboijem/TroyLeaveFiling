@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Pencil } from 'lucide-react';
 import { ApiError } from '../api/client';
 import {
@@ -254,7 +254,7 @@ export function AssignmentsPage() {
   }, [filterKey]);
 
   useEffect(() => {
-    listBranches({ status: 'active' })
+    listBranches()
       .then(setBranches)
       .catch((loadError) => {
         notify('error', loadError instanceof ApiError ? loadError.message : 'Could not load branches.');
@@ -393,9 +393,10 @@ export function AssignmentsPage() {
           >
             <option value="">All branches</option>
             <option value="unassigned">Unassigned</option>
-            {activeBranches.map((branch) => (
+            {branches.map((branch) => (
               <option key={branch.id} value={branch.id}>
                 {branch.name}
+                {branch.is_active ? '' : ' (inactive)'}
               </option>
             ))}
           </Select>
@@ -532,7 +533,18 @@ export function AssignmentsPage() {
                     row.branch ? (
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="text-sm text-text">{row.branch.name}</span>
-                        {row.branch.is_active === false ? <Badge tone="amber">Inactive</Badge> : null}
+                        {row.branch.is_active === false ? (
+                          <>
+                            <Badge tone="amber">Inactive</Badge>
+                            <button
+                              type="button"
+                              onClick={() => setSingle(row)}
+                              className="text-[11px] font-semibold text-amber-700 hover:underline"
+                            >
+                              needs reassignment
+                            </button>
+                          </>
+                        ) : null}
                       </div>
                     ) : (
                       <Badge tone="gray">Unassigned</Badge>
@@ -549,7 +561,17 @@ export function AssignmentsPage() {
                   key: 'home',
                   header: 'Home pin',
                   render: (row) => (
-                    <Badge tone={homeTone(row.home_location_status)}>{row.home_location_status}</Badge>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge tone={homeTone(row.home_location_status)}>{row.home_location_status}</Badge>
+                      {row.work_arrangement !== 'onsite' && row.home_location_status !== 'approved' ? (
+                        <Link
+                          to={`/home-locations?search=${encodeURIComponent(row.name)}`}
+                          className="text-[11px] font-semibold text-primary hover:underline"
+                        >
+                          Review pin
+                        </Link>
+                      ) : null}
+                    </div>
                   ),
                 },
                 {

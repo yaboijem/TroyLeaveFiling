@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { getHomeLocation, listHomeLocations, reviewHomeLocation } from '../api/endpoints';
 import type { HomeLocationPage, HomeLocationReview, ReviewStatus } from '../api/types';
@@ -30,10 +31,12 @@ function statusTone(status: ReviewStatus): 'green' | 'amber' | 'red' {
 export function HomeLocationsPage() {
   const { user } = useAuth();
   const { notify } = useToast();
+  const [searchParams] = useSearchParams();
 
+  const initialSearch = searchParams.get('search') ?? '';
   const [status, setStatus] = useState<StatusFilter>('pending');
-  const [search, setSearch] = useState('');
-  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState(initialSearch);
+  const [query, setQuery] = useState(initialSearch);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
 
@@ -71,6 +74,16 @@ export function HomeLocationsPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const param = searchParams.get('search') ?? '';
+
+    if (param !== '') {
+      setSearch(param);
+      setQuery(param);
+      setPage(1);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (selectedId === null) {

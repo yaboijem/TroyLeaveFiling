@@ -120,6 +120,24 @@ export function BranchesPage() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+
+    const latitude = form.latitude.trim() === '' ? null : Number(form.latitude);
+    const longitude = form.longitude.trim() === '' ? null : Number(form.longitude);
+    const coordinateErrors: Record<string, string[]> = {};
+
+    if (latitude === null || Number.isNaN(latitude)) {
+      coordinateErrors.latitude = ['Drop a pin or enter a latitude.'];
+    }
+    if (longitude === null || Number.isNaN(longitude)) {
+      coordinateErrors.longitude = ['Drop a pin or enter a longitude.'];
+    }
+
+    if (latitude === null || Number.isNaN(latitude) || longitude === null || Number.isNaN(longitude)) {
+      setFieldErrors(coordinateErrors);
+      notify('error', 'Choose the branch location on the map or enter coordinates.');
+      return;
+    }
+
     setSaving(true);
     setFieldErrors({});
 
@@ -128,8 +146,8 @@ export function BranchesPage() {
         name: form.name.trim(),
         code: form.code.trim().toUpperCase(),
         address: form.address.trim() || null,
-        latitude: Number(form.latitude),
-        longitude: Number(form.longitude),
+        latitude,
+        longitude,
         radius_meters: Number(form.radius_meters),
         accuracy_ceiling_meters: Number(form.accuracy_ceiling_meters),
         accuracy_allowance_meters: Number(form.accuracy_allowance_meters),
@@ -349,8 +367,20 @@ export function BranchesPage() {
               {
                 key: 'status',
                 header: 'Status',
-                render: (row) =>
-                  row.is_active ? <Badge tone="green">Active</Badge> : <Badge tone="gray">Inactive</Badge>,
+                render: (row) => (
+                  <div className="flex flex-col items-start gap-1">
+                    {row.is_active ? <Badge tone="green">Active</Badge> : <Badge tone="gray">Inactive</Badge>}
+                    {row.is_active && row.employee_count > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/assignments?branch_id=${row.id}`)}
+                        className="text-left text-[11px] font-semibold text-amber-700 hover:underline"
+                      >
+                        Move {row.employee_count} employee{row.employee_count === 1 ? '' : 's'} first
+                      </button>
+                    ) : null}
+                  </div>
+                ),
               },
               {
                 key: 'actions',
@@ -452,6 +482,7 @@ export function BranchesPage() {
             <Input
               type="number"
               step="any"
+              required
               value={form.latitude}
               onChange={(event) => setForm({ ...form, latitude: event.target.value })}
               placeholder="e.g. 14.554729"
@@ -461,6 +492,7 @@ export function BranchesPage() {
             <Input
               type="number"
               step="any"
+              required
               value={form.longitude}
               onChange={(event) => setForm({ ...form, longitude: event.target.value })}
               placeholder="e.g. 121.024445"
