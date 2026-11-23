@@ -20,7 +20,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE = '/TroyLeaveFiling/portal';
+export const API_BASE = '/TroyLeaveFiling/portal';
 let redirecting = false;
 
 function redirectToLogin(): void {

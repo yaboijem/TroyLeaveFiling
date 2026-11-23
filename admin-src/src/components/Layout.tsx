@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Building2, Home, LogOut, Menu, Users, X } from 'lucide-react';
+import { Building2, Clock, Home, LogOut, Menu, Users, X } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { cn } from '../lib/cn';
 import { Avatar } from './ui';
 
 const NAV_ITEMS = [
+  { to: '/attendance', label: 'Attendance', icon: <Clock size={18} />, roles: ['Admin', 'Approver'] },
   { to: '/branches', label: 'Branches', icon: <Building2 size={18} />, roles: ['Admin'] },
   { to: '/assignments', label: 'Assignments', icon: <Users size={18} />, roles: ['Admin'] },
   { to: '/home-locations', label: 'Home locations', icon: <Home size={18} />, roles: ['Admin', 'Approver'] },

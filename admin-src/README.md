@@ -1,7 +1,8 @@
 # Troy DTR Admin
 
-Session-authenticated admin for Troy's DTR system. Three screens:
+Session-authenticated admin for Troy's DTR system. Four screens:
 
+- **Attendance** (admin + approver): punch-level review with search, date presets, filters, pagination, selfie/GPS/flag details, and the break switch for admins. This is the default landing page.
 - **Branches** (admin): create/edit, activate/deactivate, guarded delete, map picker.
 - **Assignments** (admin): search/filter employees, single edit, bulk branch/work-arrangement assignment with server-side preview.
 - **Home locations** (admin + approver): review pending pins, compare with the current approved pin, approve/reject with a note.
@@ -43,8 +44,8 @@ The source folder is protected by its own `Require all denied` `.htaccess`. Do n
 
 ## Roles
 
-- `employeefiletbl.usertype = admin` — all three screens.
-- `employeefiletbl.usertype = approver` — Home locations only.
+- `employeefiletbl.usertype = admin` — Attendance, Branches, Assignments and Home locations; can toggle breaks.
+- `employeefiletbl.usertype = approver` — Attendance and Home locations; read-only on breaks.
 - Everyone else — no access; the API returns 403 and the UI shows an access-denied panel.
 
 ## Notes

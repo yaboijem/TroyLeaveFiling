@@ -57,10 +57,14 @@ export function LocationMap({
   requested,
   approved = null,
   className = 'h-64',
+  legendLabel = 'Requested pin',
+  showRadius = true,
 }: {
   requested: MapPin;
   approved?: MapPin | null;
   className?: string;
+  legendLabel?: string;
+  showRadius?: boolean;
 }) {
   const points = useMemo<[number, number][]>(() => {
     const result: [number, number][] = [[requested.latitude, requested.longitude]];
@@ -89,11 +93,13 @@ export function LocationMap({
           <MapResize />
           <FitBounds points={points} />
 
-          <Circle
-            center={[requested.latitude, requested.longitude]}
-            radius={requested.radius_meters ?? DEFAULT_RADIUS}
-            pathOptions={{ color: '#2563eb', fillColor: '#3b82f6', fillOpacity: 0.12, weight: 2 }}
-          />
+          {showRadius ? (
+            <Circle
+              center={[requested.latitude, requested.longitude]}
+              radius={requested.radius_meters ?? DEFAULT_RADIUS}
+              pathOptions={{ color: '#2563eb', fillColor: '#3b82f6', fillOpacity: 0.12, weight: 2 }}
+            />
+          ) : null}
           <Marker position={[requested.latitude, requested.longitude]} />
 
           {approved ? (
@@ -116,7 +122,7 @@ export function LocationMap({
       <div className="flex flex-wrap items-center gap-3 border-t border-border bg-card px-3 py-2 text-xs text-muted">
         <span className="inline-flex items-center gap-1.5 font-medium">
           <span className="h-2.5 w-2.5 rounded-full bg-blue-500" aria-hidden />
-          Requested pin
+          {legendLabel}
         </span>
         {approved ? (
           <span className="inline-flex items-center gap-1.5 font-medium">

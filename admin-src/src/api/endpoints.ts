@@ -1,9 +1,12 @@
 import { api } from './client';
 import type {
+  AppSettings,
+  AttendanceAdmin,
   Branch,
   BranchPayload,
   BulkAssignmentPayload,
   BulkAssignmentResult,
+  Department,
   EmployeeRow,
   HomeLocationCounts,
   HomeLocationPage,
@@ -38,6 +41,33 @@ export function fetchMe(): Promise<Me> {
 
 export function logout(): Promise<void> {
   return api.post<unknown>('/api/logout', {}).then(() => undefined);
+}
+
+export function listAttendance(
+  params: Record<string, string | number | boolean | undefined>,
+  signal?: AbortSignal,
+): Promise<Paginated<AttendanceAdmin>> {
+  return api
+    .get<PageEnvelope<AttendanceAdmin>>('/api/admin/attendance', params, signal)
+    .then(toPaginated);
+}
+
+export function listDepartments(signal?: AbortSignal): Promise<Department[]> {
+  return api
+    .get<{ data: Department[] }>('/api/admin/departments', undefined, signal)
+    .then((result) => result.data);
+}
+
+export function getAppSettings(): Promise<AppSettings> {
+  return api
+    .get<{ data: AppSettings }>('/api/admin/settings')
+    .then((result) => result.data);
+}
+
+export function updateAppSettings(payload: { breaks_enabled: boolean }): Promise<AppSettings> {
+  return api
+    .patch<{ data: AppSettings }>('/api/admin/settings', payload)
+    .then((result) => result.data);
 }
 
 export function listBranches(

@@ -6,6 +6,7 @@ import { Layout } from './components/Layout';
 import { ToastProvider } from './components/Toast';
 import { Spinner } from './components/ui';
 import { AssignmentsPage } from './pages/AssignmentsPage';
+import { AttendancePage } from './pages/AttendancePage';
 import { BranchesPage } from './pages/BranchesPage';
 import { HomeLocationsPage } from './pages/HomeLocationsPage';
 
@@ -61,8 +62,7 @@ function Shell({ children }: { children: ReactNode }) {
 function HomeRedirect() {
   const { hasRole } = useAuth();
 
-  if (hasRole('Admin')) return <Navigate to="/branches" replace />;
-  if (hasRole('Approver')) return <Navigate to="/home-locations" replace />;
+  if (hasRole('Admin', 'Approver')) return <Navigate to="/attendance" replace />;
 
   return <AccessDenied />;
 }
@@ -75,6 +75,16 @@ function AppRoutes() {
         element={
           <Shell>
             <HomeRedirect />
+          </Shell>
+        }
+      />
+      <Route
+        path="/attendance"
+        element={
+          <Shell>
+            <RequireRole roles={['Admin', 'Approver']}>
+              <AttendancePage />
+            </RequireRole>
           </Shell>
         }
       />

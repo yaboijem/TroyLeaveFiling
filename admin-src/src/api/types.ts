@@ -24,6 +24,59 @@ export interface Paginated<T> {
   prev_page_url: string | null;
 }
 
+export type AttendanceType = 'time_in' | 'time_out' | 'break_in' | 'break_out';
+export type AttendanceSource = 'app' | 'admin';
+
+export interface AttendanceAdmin {
+  id: number;
+  uuid: string;
+  type: AttendanceType;
+  break_kind: string | null;
+  expected_end_at: string | null;
+  timestamp: string | null;
+  is_late: boolean;
+  is_early_timeout: boolean;
+  work_minutes: number | null;
+  break_minutes: number | null;
+  is_overbreak: boolean;
+  source: AttendanceSource;
+  is_offline: boolean;
+  notes: string | null;
+  employee: {
+    id: string;
+    employee_id: string;
+    name: string;
+    department: string | null;
+    position: string | null;
+  };
+  branch: BranchRef | null;
+  device: null;
+  photo: { path: string } | null;
+  gps_location: {
+    latitude: number | null;
+    longitude: number | null;
+    accuracy_meters: number | null;
+    distance_from_branch_meters: number | null;
+    is_within_radius: boolean | null;
+  } | null;
+  fraud_flags: {
+    id: number;
+    type: string;
+    severity: string;
+    status: string;
+  }[];
+  created_at: string | null;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+}
+
+export interface AppSettings {
+  breaks_enabled: boolean;
+}
+
 export interface BranchRef {
   id: number;
   name: string;

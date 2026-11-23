@@ -27,6 +27,7 @@ require_once dirname(__DIR__) . '/lib/notifications.php';
 require_once dirname(__DIR__) . '/lib/home_location.php';
 require_once dirname(__DIR__) . '/lib/profile.php';
 require_once dirname(__DIR__) . '/lib/admin_branches.php';
+require_once dirname(__DIR__) . '/lib/admin_attendance.php';
 require_once dirname(__DIR__) . '/lib/admin_employees.php';
 require_once dirname(__DIR__) . '/lib/admin_home_locations.php';
 require_once dirname(__DIR__) . '/lib/push.php';

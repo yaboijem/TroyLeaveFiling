@@ -44,6 +44,16 @@ return [
     'GET /api/settings' => 'portal_handle_settings',
     'GET /api/employee/consent' => 'portal_handle_consent_index',
     'POST /api/employee/consent' => 'portal_handle_consent_store',
+    'GET /api/admin/attendance' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_attendance_index($db, $auth ?? [], $_GET),
+    'GET /api/admin/attendance/{id}/photo' => 'portal_handle_admin_attendance_photo',
+    'GET /api/admin/departments' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_departments_index($db, $auth ?? [], $_GET),
+    'GET /api/admin/settings' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_settings_show($db, $auth ?? [], $params),
+    'PATCH /api/admin/settings' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_settings_update($db, $auth ?? [], portal_request_input()),
+
     'GET /api/admin/branches' => static fn (mysqli $db, ?array $auth, array $params): array
         => portal_admin_branches_index($db, $auth ?? [], $_GET),
     'POST /api/admin/branches' => static fn (mysqli $db, ?array $auth, array $params): array
