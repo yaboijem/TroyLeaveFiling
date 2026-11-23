@@ -282,37 +282,167 @@ function portal_admin_branches_store(mysqli $db, array $auth, array $input): arr
     return ['data' => portal_admin_branch_dto(portal_admin_branch_row($db, $id))];
 }
 
+function portal_admin_branch_lock_row(mysqli $db, int $id): array
+{
+    $stmt = $db->prepare('SELECT * FROM branches WHERE id = ? FOR UPDATE');
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!is_array($row)) {
+        throw new PortalApiException('Branch not found.', 'not_found', 404);
+    }
+
+    return $row;
+}
+
+function portal_admin_branch_has_employees(int $employees): PortalApiException
+{
+    return new PortalApiException(
+        'Move the employees assigned to this branch before deactivating it.',
+        'branch_has_employees',
+        409,
+        ['employees' => $employees]
+    );
+}
+
 function portal_admin_branches_update(mysqli $db, array $auth, int $id, array $input): array
 {
     portal_require_role($auth, ['admin']);
-    $existing = portal_admin_branch_row($db, $id);
-    $data = portal_admin_branch_input($db, $input, $existing);
     $now = portal_now()->format('Y-m-d H:i:s');
-    $isActive = $data['is_active'] ? 1 : 0;
 
-    $stmt = $db->prepare(
-        'UPDATE branches
-            SET name = ?, code = ?, address = ?, latitude = ?, longitude = ?,
-                radius_meters = ?, accuracy_ceiling_meters = ?, accuracy_allowance_meters = ?,
-                is_active = ?, updated_at = ?
-          WHERE id = ?'
-    );
-    $stmt->bind_param(
-        'sssddiidisi',
-        $data['name'],
-        $data['code'],
-        $data['address'],
-        $data['latitude'],
-        $data['longitude'],
-        $data['radius_meters'],
-        $data['accuracy_ceiling_meters'],
-        $data['accuracy_allowance_meters'],
-        $isActive,
-        $now,
-        $id
-    );
-    $stmt->execute();
-    $stmt->close();
+    $db->begin_transaction();
+
+    try {
+        $existing = portal_admin_branch_lock_row($db, $id);
+        $data = portal_admin_branch_input($db, $input, $existing);
+
+        if ((int) $existing['is_active'] === 1 && !$data['is_active']) {
+            $usage = portal_admin_branch_usage($db, $id);
+
+            if ($usage['employees'] > 0) {
+                throw portal_admin_branch_has_employees($usage['employees']);
+            }
+        }
+
+        $isActive = $data['is_active'] ? 1 : 0;
+
+        $stmt = $db->prepare(
+            'UPDATE branches
+                SET name = ?, code = ?, address = ?, latitude = ?, longitude = ?,
+                    radius_meters = ?, accuracy_ceiling_meters = ?, accuracy_allowance_meters = ?,
+                    is_active = ?, updated_at = ?
+              WHERE id = ?'
+        );
+        $stmt->bind_param(
+            'sssddiidisi',
+            $data['name'],
+            $data['code'],
+            $data['address'],
+            $data['latitude'],
+            $data['longitude'],
+            $data['radius_meters'],
+            $data['accuracy_ceiling_meters'],
+            $data['accuracy_allowance_meters'],
+            $isActive,
+            $now,
+            $id
+        );
+        $stmt->execute();
+        $stmt->close();
+
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollback();
+        throw $e;
+    }
 
     return ['data' => portal_admin_branch_dto(portal_admin_branch_row($db, $id))];
+}
+
+function portal_admin_branches_deactivate(mysqli $db, array $auth, int $id): array
+{
+    portal_require_role($auth, ['admin']);
+    $now = portal_now()->format('Y-m-d H:i:s');
+
+    $db->begin_transaction();
+
+    try {
+        portal_admin_branch_lock_row($db, $id);
+        $usage = portal_admin_branch_usage($db, $id);
+
+        if ($usage['employees'] > 0) {
+            throw portal_admin_branch_has_employees($usage['employees']);
+        }
+
+        $stmt = $db->prepare('UPDATE branches SET is_active = 0, updated_at = ? WHERE id = ?');
+        $stmt->bind_param('si', $now, $id);
+        $stmt->execute();
+        $stmt->close();
+
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollback();
+        throw $e;
+    }
+
+    return ['data' => portal_admin_branch_dto(portal_admin_branch_row($db, $id))];
+}
+
+function portal_admin_branches_activate(mysqli $db, array $auth, int $id): array
+{
+    portal_require_role($auth, ['admin']);
+    $now = portal_now()->format('Y-m-d H:i:s');
+
+    $db->begin_transaction();
+
+    try {
+        portal_admin_branch_lock_row($db, $id);
+
+        $stmt = $db->prepare('UPDATE branches SET is_active = 1, updated_at = ? WHERE id = ?');
+        $stmt->bind_param('si', $now, $id);
+        $stmt->execute();
+        $stmt->close();
+
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollback();
+        throw $e;
+    }
+
+    return ['data' => portal_admin_branch_dto(portal_admin_branch_row($db, $id))];
+}
+
+function portal_admin_branches_delete(mysqli $db, array $auth, int $id): array
+{
+    portal_require_role($auth, ['admin']);
+
+    $db->begin_transaction();
+
+    try {
+        portal_admin_branch_lock_row($db, $id);
+        $usage = portal_admin_branch_usage($db, $id);
+
+        if ($usage['employees'] > 0 || $usage['attendance'] > 0) {
+            throw new PortalApiException(
+                'This branch has employees or attendance history. Deactivate it instead.',
+                'branch_in_use',
+                409,
+                $usage
+            );
+        }
+
+        $stmt = $db->prepare('DELETE FROM branches WHERE id = ?');
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $stmt->close();
+
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollback();
+        throw $e;
+    }
+
+    return ['data' => ['deleted' => true]];
 }

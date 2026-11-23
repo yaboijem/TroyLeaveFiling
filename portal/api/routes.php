@@ -50,6 +50,12 @@ return [
         => portal_admin_branches_store($db, $auth ?? [], portal_request_input()),
     'PATCH /api/admin/branches/{id}' => static fn (mysqli $db, ?array $auth, array $params): array
         => portal_admin_branches_update($db, $auth ?? [], (int) $params['id'], portal_request_input()),
+    'POST /api/admin/branches/{id}/deactivate' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_branches_deactivate($db, $auth ?? [], (int) $params['id']),
+    'POST /api/admin/branches/{id}/activate' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_branches_activate($db, $auth ?? [], (int) $params['id']),
+    'DELETE /api/admin/branches/{id}' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_branches_delete($db, $auth ?? [], (int) $params['id']),
 
     'POST /api/login' => [
         'public' => true,

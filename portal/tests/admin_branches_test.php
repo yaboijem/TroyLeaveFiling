@@ -140,4 +140,111 @@ return [
             403
         );
     },
+
+    'deactivate blocked while employees assigned' => function (): void {
+        $error = portal_assert_api_error(
+            fn () => portal_admin_branches_deactivate(portal_test_db(), admin_branch_auth(), 1),
+            'branch_has_employees',
+            409
+        );
+
+        portal_assert_same(5, (int) ($error->details['employees'] ?? 0), 'employee count');
+    },
+
+    'deactivate succeeds at zero employees' => function (): void {
+        $db = portal_test_db();
+        $db->query('DELETE FROM dtr_employee_profile WHERE branch_id = 1');
+
+        $result = portal_admin_branches_deactivate($db, admin_branch_auth(), 1);
+
+        portal_assert_same(false, $result['data']['is_active'], 'branch must be inactive');
+        portal_assert_same(0, $result['data']['employee_count'], 'employee count');
+    },
+
+    'activate restores branch' => function (): void {
+        $db = portal_test_db();
+        $db->query('UPDATE branches SET is_active = 0 WHERE id = 1');
+
+        $result = portal_admin_branches_activate($db, admin_branch_auth(), 1);
+
+        portal_assert_same(true, $result['data']['is_active'], 'branch must be active');
+    },
+
+    'delete blocked by employees' => function (): void {
+        $error = portal_assert_api_error(
+            fn () => portal_admin_branches_delete(portal_test_db(), admin_branch_auth(), 1),
+            'branch_in_use',
+            409
+        );
+
+        portal_assert_same(5, (int) ($error->details['employees'] ?? 0), 'employee count');
+        portal_assert_same(0, (int) ($error->details['attendance'] ?? 0), 'attendance count');
+    },
+
+    'delete blocked by attendance history' => function (): void {
+        $db = portal_test_db();
+        $db->query('DELETE FROM dtr_employee_profile WHERE branch_id = 1');
+        $db->query(
+            "INSERT INTO attendance
+                (idno, branch_id, work_date, time_in, time_out, break_minutes, work_minutes,
+                 is_late, is_early_timeout, is_overbreak, source, notes, created_at, updated_at)
+             VALUES
+                ('1015', 1, '2026-11-19', '2026-11-19 08:00:00', '2026-11-19 17:00:00',
+                 0, 540, 0, 0, 0, 'app', NULL, NOW(), NOW())"
+        );
+
+        $error = portal_assert_api_error(
+            fn () => portal_admin_branches_delete($db, admin_branch_auth(), 1),
+            'branch_in_use',
+            409
+        );
+
+        portal_assert_same(0, (int) ($error->details['employees'] ?? 0), 'employee count');
+        portal_assert_same(1, (int) ($error->details['attendance'] ?? 0), 'attendance count');
+    },
+
+    'delete succeeds when unused' => function (): void {
+        $db = portal_test_db();
+
+        $result = portal_admin_branches_delete($db, admin_branch_auth(), 2);
+
+        portal_assert_same(true, $result['data']['deleted'], 'deleted flag');
+        portal_assert_same(0, (int) $db->query('SELECT COUNT(*) AS c FROM branches WHERE id = 2')->fetch_assoc()['c'], 'branch still exists');
+    },
+
+    'patch cannot deactivate with employees' => function (): void {
+        $error = portal_assert_api_error(
+            fn () => portal_admin_branches_update(portal_test_db(), admin_branch_auth(), 1, ['is_active' => false]),
+            'branch_has_employees',
+            409
+        );
+
+        portal_assert_same(5, (int) ($error->details['employees'] ?? 0), 'employee count');
+    },
+
+    'unknown branch lifecycle returns 404' => function (): void {
+        portal_assert_api_error(
+            fn () => portal_admin_branches_deactivate(portal_test_db(), admin_branch_auth(), 99999),
+            'not_found',
+            404
+        );
+        portal_assert_api_error(
+            fn () => portal_admin_branches_delete(portal_test_db(), admin_branch_auth(), 99999),
+            'not_found',
+            404
+        );
+    },
+
+    'approver cannot deactivate or delete' => function (): void {
+        portal_assert_api_error(
+            fn () => portal_admin_branches_deactivate(portal_test_db(), admin_branch_auth('approver'), 1),
+            'forbidden',
+            403
+        );
+        portal_assert_api_error(
+            fn () => portal_admin_branches_delete(portal_test_db(), admin_branch_auth('approver'), 1),
+            'forbidden',
+            403
+        );
+    },
 ];
