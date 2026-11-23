@@ -42,6 +42,7 @@ The admin reuses Troy's existing employee login and session. It adds no new acco
 - **Login:** the existing root login at `/TroyLeaveFiling/index.php` ("Employee Log In"). It posts to `crudlogin.php`, which sets `idno`, `admin_or_user`, and `session_token`. The portal session cookie is path `/`, `HttpOnly`, `SameSite=Lax`, so the admin app and portal API share it.
 - **No new login form.** The React app calls `/api/me` to learn the signed-in user and roles.
 - **Unauthenticated:** the app redirects to `/TroyLeaveFiling/index.php?return=/TroyLeaveFiling/admin/<current-path>`.
+- **Stale session:** if `/api/me` or any API call returns 401 while the app is open, redirect to `/TroyLeaveFiling/index.php?reauth=1&return=...`. With `reauth=1`, `index.php` clears the PHP session before showing the login form, so an invalidated `session_token` (or a legacy `admin_or_user` session without `idno`/`session_token`) cannot bounce the browser straight back into the app.
 - **Return-path allowlist:** `index.php` currently accepts `return` only under `/TroyLeaveFiling/portal`. Extend it to accept the exact `/TroyLeaveFiling/admin` or a `/TroyLeaveFiling/admin/...` path, using the same scheme/host/`..`/encoding checks.
 - **Server enforcement:** every admin endpoint must check the role itself. Hiding nav items is not security.
 - **Role helper:** add `portal_require_role(?array $auth, array $roles): array` in `portal/lib/auth.php`. It throws `PortalApiException('You do not have access to this area.', 'forbidden', 403)` for a signed-in user with the wrong role. `portal_require_auth()` already handles 401.
@@ -172,6 +173,7 @@ Validation, mirroring `StoreBranchRequest`:
 
 Guards:
 
+- `PATCH` is a partial update: omitted fields keep their current values. Setting `is_active=false` through `PATCH` enforces the same zero-employee guard as the deactivate endpoint, so the edit toggle cannot bypass it.
 - **Deactivate:** in a transaction, lock the branch row `FOR UPDATE`, count profiles, reject with 409 `branch_has_employees` and `{employees: n}` if any. Then set `is_active=0`.
 - **Delete:** in a transaction, lock the branch row, count profiles and attendance. Reject with 409 `branch_in_use` and `{employees: n, attendance: n}` if either is non-zero. Then delete.
 - **Activate:** set `is_active=1`.
@@ -182,7 +184,8 @@ Guards:
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/admin/employees` | Paginated employee list |
-| POST | `/api/admin/employees/assignments/bulk` | Assign branch and/or arrangement to 1..1000 employees |
+| POST | `/api/admin/employees/assignments/preview` | Validate a batch and return counts/warnings without writing |
+| POST | `/api/admin/employees/assignments/bulk` | Assign branch and/or arrangement to 1..2000 employees |
 
 Employee row:
 
@@ -203,7 +206,8 @@ Employee row:
 
 - `home_location_status` is `approved` if any approved pin exists, else `pending` if any pending pin exists, else `none`.
 - `branch` is null when unassigned. If the assigned branch is inactive (legacy data), include it with `is_active: false` so the UI can flag it.
-- `has_profile` is false when no `dtr_employee_profile` row exists.
+- `has_profile` is false when no `dtr_employee_profile` row exists. Such employees are returned with the effective `work_arrangement: "onsite"` (matching punch resolution) so the arrangement filter and warnings do not hide them; the UI can add a "No DTR profile" hint.
+- The employee list is capped at `per_page=100` like the other lists, but "Select all matching filters" may page through up to 2,000 ids.
 - List params: `search` (name/email/idno), `branch_id`, `arrangement` (`onsite|wfh|hybrid`), `home_location_status` (`approved|pending|none`), `active` (`1|0`; default `1`), `page`, `per_page` (default 50, max 100).
 - Sort by `employeename`. Use prepared statements and escape `%`/`_` in `LIKE`.
 - Joins between `employeefiletbl` and `dtr_employee_profile`/`home_locations` must use the existing `COLLATE utf8mb4_general_ci` pattern from `portal_user_dto()`; the tables do not share a collation.
@@ -221,6 +225,8 @@ Bulk assignment request:
 - At least one of `branch_id` or `work_arrangement` must be present. Sending neither is 422.
 - `branch_id` must reference an **active** branch. Assigning to an inactive branch is 422.
 - `work_arrangement` must be `onsite`, `wfh`, or `hybrid`.
+- `idnos` is capped at 2,000 per request. "Select all matching filters" refuses to exceed it rather than silently truncating.
+- The preview endpoint takes the same body and performs the same validation, then returns the same `updated/created/skipped/warnings` shape with `updated`/`created` computed but no writes. The UI calls it when the modal opens and whenever a field changes.
 - All idnos are validated against `employeefiletbl`. Inactive employees are skipped, not failed.
 - Employees without a profile get one created. If `work_arrangement` is not supplied, the new profile defaults to `onsite` (same as `portal_set_profile()`).
 - Writes happen in chunks of 100 using `INSERT ... ON DUPLICATE KEY UPDATE` with `COALESCE` so an omitted field is not overwritten. All chunks run in one transaction; any SQL failure rolls the whole batch back.
@@ -290,6 +296,7 @@ Review row:
 - Review request: `{ "action": "approve|reject", "note": "..." }`.
 - `note` is required for reject (422 if missing/blank), optional for approve.
 - Review delegates to `portal_review_home_location($db, $id, $action, $note, $reviewedBy)`, so superseding the previous approved pin, status transitions, locking, and employee notification keep working.
+- Self-review is not allowed: when the reviewer's `idno` equals the pin owner's `idno`, return 403 `cannot_review_own_pin`. This applies to admins and approvers; another admin/approver can review the pin.
 - Approvers may call all three home-location endpoints; they may not call branch or employee endpoints.
 
 ## 9. Punch and assignment behavior
@@ -308,7 +315,7 @@ Review row:
 - Admin sees all three nav items. Approver sees Home Locations only and lands there.
 - Header shows the app name, signed-in employee name, and a logout action that posts `/api/logout` and returns to `index.php`.
 - On load, call `/api/me`:
-  - 401 → redirect to login with `return`.
+  - 401 → redirect to `index.php?reauth=1&return=...` so the stale session is cleared before the login form renders.
   - role Employee → show an access-denied panel with a link back to the portal/dashboard.
 - Shared UI: page header, data table, modal/drawer, buttons, badges, inputs, selects, toasts, empty states, loading states, error boundary.
 - Desktop-first, usable down to tablet width; tables become horizontally scrollable, not card-per-row.
@@ -341,11 +348,12 @@ Review row:
   - Branch select: "No change" plus active branches.
   - Arrangement select: "No change", Onsite, WFH, Hybrid.
   - Apply disabled until at least one field is not "No change".
-  - Preview warnings:
+  - Preview warnings come from the server preview endpoint, so they are correct even for employees selected via "Select all matching filters":
     - employees without profiles will be created;
     - setting WFH/hybrid for N employees without an approved pin will block their punches until approval;
     - setting onsite for N employees with no branch will block their punches;
     - inactive branches are not offered.
+  - "Select all matching filters" pages through the filtered list up to 2,000 ids; above that it refuses with a message instead of truncating.
   - Apply → bulk endpoint → result summary → refresh.
 - Single-row edit uses the same modal with one idno.
 - Rows whose assigned branch is inactive show a warning badge and "needs reassignment".
@@ -441,7 +449,8 @@ The built `admin/` output is committed, matching how `portal/assets` and `portal
   - delete blocked with employees, blocked with attendance, allowed when unused;
   - list counts and status filter.
 - New `admin_employees_test.php`:
-  - list search/filter/pagination;
+  - list search/filter/pagination; missing profiles are effective onsite;
+  - preview returns counts/warnings and writes nothing;
   - bulk branch-only, arrangement-only, and both;
   - no-change request rejected;
   - inactive branch rejected;
@@ -455,6 +464,7 @@ The built `admin/` output is committed, matching how `portal/assets` and `portal
   - detail includes current approved pin;
   - approve supersedes previous approved pin and notifies;
   - reject requires a note;
+  - self-review returns 403;
   - approver allowed; employee/other role denied;
   - role gate: approver denied branch/employee endpoints.
 - Update `gps_test.php`: inactive branch yields no branch geofence.
