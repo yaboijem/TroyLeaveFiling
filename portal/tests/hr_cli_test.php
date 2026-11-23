@@ -23,6 +23,18 @@ return [
     'set profile rejects unknown branch' => function (): void {
         portal_assert_api_error(fn () => portal_set_profile(portal_test_db(), '1015', 99999, null), 'validation_error', 422);
     },
+    'set profile rejects inactive branch' => function (): void {
+        $db = portal_test_db();
+        $db->query('UPDATE branches SET is_active = 0 WHERE id = 2');
+
+        portal_assert_api_error(fn () => portal_set_profile($db, '1015', 2, null), 'validation_error', 422);
+    },
+    'set profile accepts active branch' => function (): void {
+        $db = portal_test_db();
+        $db->query('UPDATE branches SET is_active = 1 WHERE id = 2');
+
+        portal_assert_same(2, portal_set_profile($db, '1015', 2, null)['branch_id']);
+    },
     'set profile rejects invalid arrangement' => function (): void {
         portal_assert_api_error(fn () => portal_set_profile(portal_test_db(), '1015', null, 'invalid'), 'validation_error', 422);
     },

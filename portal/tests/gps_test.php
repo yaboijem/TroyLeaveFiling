@@ -74,4 +74,17 @@ return [
         $e = portal_assert_api_error(fn () => portal_resolve_location($db, '1019', 15, 121, 10), 'gps_out_of_range', 422);
         portal_assert_null($e->details['verified_against_type']);
     },
+    'inactive branch is not a punch target' => function (): void {
+        $db = portal_test_db();
+        $db->query('UPDATE branches SET is_active = 0 WHERE id = 1');
+
+        $e = portal_assert_api_error(
+            fn () => portal_resolve_location($db, '1015', 14.5995, 120.9842, 10),
+            'gps_out_of_range',
+            422
+        );
+
+        portal_assert_same('branch', $e->details['verified_against_type']);
+        portal_assert_null($e->details['distance_meters']);
+    },
 ];

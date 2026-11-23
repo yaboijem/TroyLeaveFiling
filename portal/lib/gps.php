@@ -26,7 +26,7 @@ function portal_verify_coordinates(
 
 function portal_resolve_location(mysqli $db, string $idno, ?float $latitude, ?float $longitude, ?float $accuracy): array
 {
-    $stmt = $db->prepare('SELECT p.work_arrangement, b.* FROM dtr_employee_profile p LEFT JOIN branches b ON b.id=p.branch_id WHERE p.idno=? LIMIT 1');
+    $stmt = $db->prepare('SELECT p.work_arrangement, b.* FROM dtr_employee_profile p LEFT JOIN branches b ON b.id=p.branch_id AND b.is_active=1 WHERE p.idno=? LIMIT 1');
     $stmt->bind_param('s', $idno);
     $stmt->execute();
     $branch = $stmt->get_result()->fetch_assoc() ?: [];

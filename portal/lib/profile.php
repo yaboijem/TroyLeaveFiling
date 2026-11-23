@@ -13,7 +13,7 @@ function portal_set_profile(mysqli $db, string $idno, ?int $branchId, ?string $a
         throw new PortalApiException('Invalid work arrangement.', 'validation_error', 422);
     }
     if ($branchId !== null) {
-        $stmt = $db->prepare('SELECT id FROM branches WHERE id=?');
+        $stmt = $db->prepare('SELECT id FROM branches WHERE id=? AND is_active=1');
         $stmt->bind_param('i', $branchId);
         $stmt->execute();
         $branch = $stmt->get_result()->fetch_assoc();
