@@ -8,11 +8,34 @@
     $parts = parse_url($candidate);
     $path = is_array($parts) ? (string) ($parts['path'] ?? '') : '';
     $portalPath = $path === '/TroyLeaveFiling/portal' || str_starts_with($path, '/TroyLeaveFiling/portal/');
-    if (is_array($parts) && !isset($parts['scheme']) && !isset($parts['host']) && $portalPath
+    $adminPath = $path === '/TroyLeaveFiling/admin' || str_starts_with($path, '/TroyLeaveFiling/admin/');
+    if (is_array($parts) && !isset($parts['scheme']) && !isset($parts['host']) && ($portalPath || $adminPath)
         && !str_contains($candidate, '//') && !str_contains($candidate, '\\') && !str_contains($decoded, '..')
         && !str_contains($decoded, '//') && !str_contains($decoded, '\\')
         && !preg_match('/[<>"\']/', $candidate) && !preg_match('/%2e|%2f|%5c/i', $candidate)) {
       $returnTo = $candidate;
+    }
+  }
+
+  if (isset($_GET['reauth'])) {
+    $_SESSION = [];
+
+    if (isset($_COOKIE[session_name()])) {
+      $cookie = session_get_cookie_params();
+      setcookie(
+        session_name(),
+        '',
+        time() - 42000,
+        $cookie['path'],
+        $cookie['domain'],
+        $cookie['secure'],
+        $cookie['httponly']
+      );
+    }
+
+    if (session_status() === PHP_SESSION_ACTIVE) {
+      session_destroy();
+      session_start();
     }
   }
 
