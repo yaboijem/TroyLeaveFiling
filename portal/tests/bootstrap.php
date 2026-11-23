@@ -99,7 +99,7 @@ function portal_test_db(): mysqli
 
     $db = portal_db_connect($config);
 
-    foreach ([__DIR__ . '/troy_schema.sql', dirname(__DIR__) . '/sql/001_schema.sql', dirname(__DIR__) . '/sql/003_push_outbox.sql'] as $schema) {
+    foreach ([__DIR__ . '/troy_schema.sql', dirname(__DIR__) . '/sql/001_schema.sql', dirname(__DIR__) . '/sql/002_branch_admin.sql', dirname(__DIR__) . '/sql/003_push_outbox.sql'] as $schema) {
         if (!is_file($schema)) {
             continue;
         }

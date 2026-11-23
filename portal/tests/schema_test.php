@@ -176,4 +176,36 @@ return [
         portal_assert_same((float) $expected['longitude'], (float) $branch['longitude'], 'longitude');
         portal_assert_same((int) $expected['radius_meters'], (int) $branch['radius_meters'], 'radius');
     },
+
+    'branch admin address column exists' => function (): void {
+        $columns = schema_column_names(portal_test_db(), 'branches');
+
+        portal_assert_true(in_array('address', $columns, true), 'Missing branches.address.');
+        portal_assert_true(in_array('is_active', $columns, true), 'Missing branches.is_active.');
+    },
+
+    'branch admin is active defaults to one' => function (): void {
+        $db = portal_test_db();
+        $now = portal_now()->format('Y-m-d H:i:s');
+
+        $stmt = $db->prepare(
+            'INSERT INTO branches
+                (name, code, latitude, longitude, radius_meters, accuracy_ceiling_meters,
+                 accuracy_allowance_meters, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $name = 'Default Check';
+        $code = 'DEFAULTCHK';
+        $latitude = 14.0;
+        $longitude = 121.0;
+        $radius = 200;
+        $ceiling = 100;
+        $allowance = 20.0;
+        $stmt->bind_param('ssddiidss', $name, $code, $latitude, $longitude, $radius, $ceiling, $allowance, $now, $now);
+        $stmt->execute();
+        $stmt->close();
+
+        $row = $db->query("SELECT is_active FROM branches WHERE code = 'DEFAULTCHK'")->fetch_assoc();
+        portal_assert_same(1, (int) ($row['is_active'] ?? 0), 'new branches must default active');
+    },
 ];
