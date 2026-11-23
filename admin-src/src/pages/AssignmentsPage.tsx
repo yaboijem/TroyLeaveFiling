@@ -608,7 +608,7 @@ export function AssignmentsPage() {
         title={single ? `Edit ${single.name}` : 'Edit assignment'}
         idnos={singleIds}
         branches={activeBranches}
-        initialBranch={single?.branch ? String(single.branch.id) : ''}
+        initialBranch={single?.branch && single.branch.is_active !== false ? String(single.branch.id) : ''}
         initialArrangement={single?.work_arrangement ?? ''}
         onApplied={(result) => {
           notify('success', summary(result));
