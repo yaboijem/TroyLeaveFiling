@@ -27,6 +27,7 @@ require_once dirname(__DIR__) . '/lib/notifications.php';
 require_once dirname(__DIR__) . '/lib/home_location.php';
 require_once dirname(__DIR__) . '/lib/profile.php';
 require_once dirname(__DIR__) . '/lib/admin_branches.php';
+require_once dirname(__DIR__) . '/lib/admin_employees.php';
 require_once dirname(__DIR__) . '/lib/push.php';
 
 function portal_assert_same(mixed $expected, mixed $actual, string $message = ''): void

@@ -57,6 +57,9 @@ return [
     'DELETE /api/admin/branches/{id}' => static fn (mysqli $db, ?array $auth, array $params): array
         => portal_admin_branches_delete($db, $auth ?? [], (int) $params['id']),
 
+    'GET /api/admin/employees' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_employees_index($db, $auth ?? [], $_GET),
+
     'POST /api/login' => [
         'public' => true,
         'handler' => static fn (mysqli $db, ?array $auth, array $params): array
