@@ -29,6 +29,7 @@ require dirname(__DIR__) . '/lib/notifications.php';
 require dirname(__DIR__) . '/lib/home_location.php';
 require dirname(__DIR__) . '/lib/admin_branches.php';
 require dirname(__DIR__) . '/lib/admin_employees.php';
+require dirname(__DIR__) . '/lib/admin_home_locations.php';
 require dirname(__DIR__) . '/lib/push.php';
 
 $db = portal_db();

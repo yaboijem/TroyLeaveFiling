@@ -64,6 +64,11 @@ return [
     'POST /api/admin/employees/assignments/bulk' => static fn (mysqli $db, ?array $auth, array $params): array
         => portal_admin_assignments_bulk($db, $auth ?? [], portal_request_input()),
 
+    'GET /api/admin/home-locations' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_home_locations_index($db, $auth ?? [], $_GET),
+    'GET /api/admin/home-locations/{id}' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_home_locations_show($db, $auth ?? [], (int) $params['id']),
+
     'POST /api/login' => [
         'public' => true,
         'handler' => static fn (mysqli $db, ?array $auth, array $params): array
