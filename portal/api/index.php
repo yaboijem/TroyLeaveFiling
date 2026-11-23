@@ -27,6 +27,7 @@ require dirname(__DIR__) . '/lib/fraud.php';
 require dirname(__DIR__) . '/lib/history.php';
 require dirname(__DIR__) . '/lib/notifications.php';
 require dirname(__DIR__) . '/lib/home_location.php';
+require dirname(__DIR__) . '/lib/admin_branches.php';
 require dirname(__DIR__) . '/lib/push.php';
 
 $db = portal_db();

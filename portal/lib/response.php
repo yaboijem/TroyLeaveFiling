@@ -69,6 +69,23 @@ function portal_validation_error(array $errors): never
     );
 }
 
+function portal_request_input(): array
+{
+    if ($_POST !== []) {
+        return $_POST;
+    }
+
+    $raw = file_get_contents('php://input');
+
+    if (!is_string($raw) || trim($raw) === '') {
+        return [];
+    }
+
+    $decoded = json_decode($raw, true);
+
+    return is_array($decoded) ? $decoded : [];
+}
+
 function portal_is_ajax(array $server): bool
 {
     return ($server['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
