@@ -168,3 +168,250 @@ function portal_admin_employees_index(mysqli $db, array $auth, array $params): a
         ],
     ];
 }
+
+function portal_admin_assignments_bulk(mysqli $db, array $auth, array $input, bool $preview = false): array
+{
+    portal_require_role($auth, ['admin']);
+
+    $errors = [];
+    $rawIdnos = $input['idnos'] ?? null;
+
+    if (!is_array($rawIdnos)) {
+        $rawIdnos = [];
+    }
+
+    $idnos = [];
+
+    foreach ($rawIdnos as $raw) {
+        if (!is_string($raw) && !is_int($raw)) {
+            continue;
+        }
+
+        $idno = trim((string) $raw);
+
+        if ($idno !== '') {
+            $idnos[$idno] = true;
+        }
+    }
+
+    $idnos = array_keys($idnos);
+
+    if ($idnos === []) {
+        $errors['idnos'][] = 'Select at least one employee.';
+    } elseif (count($idnos) > 2000) {
+        $errors['idnos'][] = 'A single batch can contain at most 2000 employees.';
+    }
+
+    $hasBranch = array_key_exists('branch_id', $input)
+        && $input['branch_id'] !== null
+        && $input['branch_id'] !== '';
+    $hasArrangement = array_key_exists('work_arrangement', $input)
+        && $input['work_arrangement'] !== null
+        && $input['work_arrangement'] !== '';
+
+    $branchId = null;
+
+    if ($hasBranch) {
+        $branchId = portal_admin_integer($input['branch_id']);
+
+        if ($branchId === null || $branchId < 1) {
+            $errors['branch_id'][] = 'Choose a valid branch.';
+            $hasBranch = false;
+        }
+    }
+
+    $arrangement = null;
+
+    if ($hasArrangement) {
+        $arrangement = strtolower(trim((string) $input['work_arrangement']));
+
+        if (!in_array($arrangement, ['onsite', 'wfh', 'hybrid'], true)) {
+            $errors['work_arrangement'][] = 'Choose onsite, wfh, or hybrid.';
+        }
+    }
+
+    if (!$hasBranch && !$hasArrangement) {
+        $errors['assignment'][] = 'Choose a branch, a work arrangement, or both.';
+    }
+
+    if ($errors !== []) {
+        throw new PortalApiException('The given data was invalid.', 'validation_error', 422, ['errors' => $errors]);
+    }
+
+    $now = portal_now()->format('Y-m-d H:i:s');
+
+    $db->begin_transaction();
+
+    try {
+        if ($branchId !== null) {
+            $stmt = $db->prepare('SELECT id FROM branches WHERE id = ? AND is_active = 1 FOR UPDATE');
+            $stmt->bind_param('i', $branchId);
+            $stmt->execute();
+            $branchRow = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+
+            if (!is_array($branchRow)) {
+                throw new PortalApiException(
+                    'The given data was invalid.',
+                    'validation_error',
+                    422,
+                    ['errors' => ['branch_id' => ['Choose an active branch.']]]
+                );
+            }
+        }
+
+        $employees = [];
+
+        foreach (array_chunk($idnos, 100) as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+            $stmt = $db->prepare("SELECT idno, active FROM employeefiletbl WHERE idno IN ($placeholders)");
+            $stmt->bind_param(str_repeat('s', count($chunk)), ...$chunk);
+            $stmt->execute();
+            $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+
+            foreach ($rows as $row) {
+                $employees[(string) $row['idno']] = $row;
+            }
+        }
+
+        $valid = [];
+        $skipped = 0;
+
+        foreach ($idnos as $idno) {
+            if (!isset($employees[$idno]) || !portal_active($employees[$idno]['active'] ?? null)) {
+                $skipped++;
+                continue;
+            }
+
+            $valid[] = $idno;
+        }
+
+        $profiles = [];
+
+        if ($valid !== []) {
+            foreach (array_chunk($valid, 100) as $chunk) {
+                $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+                $stmt = $db->prepare(
+                    "SELECT idno, branch_id, work_arrangement
+                       FROM dtr_employee_profile
+                      WHERE idno IN ($placeholders)"
+                );
+                $stmt->bind_param(str_repeat('s', count($chunk)), ...$chunk);
+                $stmt->execute();
+                $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                $stmt->close();
+
+                foreach ($rows as $row) {
+                    $profiles[(string) $row['idno']] = $row;
+                }
+            }
+        }
+
+        $created = 0;
+        $updated = 0;
+
+        foreach ($valid as $idno) {
+            if (isset($profiles[$idno])) {
+                $updated++;
+            } else {
+                $created++;
+            }
+        }
+
+        if (!$preview && $valid !== []) {
+            foreach (array_chunk($valid, 100) as $chunk) {
+                $rowPlaceholders = [];
+                $types = '';
+                $values = [];
+
+                foreach ($chunk as $idno) {
+                    $rowPlaceholders[] = "(?, ?, COALESCE(?, 'onsite'), ?, ?)";
+                    $types .= 'sisss';
+                    array_push($values, $idno, $branchId, $arrangement, $now, $now);
+                }
+
+                $types .= 'iss';
+                array_push($values, $branchId, $arrangement, $now);
+
+                $sql = 'INSERT INTO dtr_employee_profile
+                            (idno, branch_id, work_arrangement, created_at, updated_at)
+                        VALUES ' . implode(', ', $rowPlaceholders) . '
+                        ON DUPLICATE KEY UPDATE
+                            branch_id = COALESCE(?, branch_id),
+                            work_arrangement = COALESCE(?, work_arrangement),
+                            updated_at = ?';
+
+                $stmt = $db->prepare($sql);
+                $stmt->bind_param($types, ...$values);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+
+        $approved = [];
+
+        if ($valid !== []) {
+            foreach (array_chunk($valid, 100) as $chunk) {
+                $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+                $stmt = $db->prepare(
+                    "SELECT DISTINCT idno
+                       FROM home_locations
+                      WHERE status = 'approved' AND idno IN ($placeholders)"
+                );
+                $stmt->bind_param(str_repeat('s', count($chunk)), ...$chunk);
+                $stmt->execute();
+                $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                $stmt->close();
+
+                foreach ($rows as $row) {
+                    $approved[(string) $row['idno']] = true;
+                }
+            }
+        }
+
+        $noHomePin = 0;
+        $noBranchForOnsite = 0;
+
+        foreach ($valid as $idno) {
+            $profile = $profiles[$idno] ?? null;
+            $resultBranch = $branchId !== null
+                ? $branchId
+                : ($profile !== null && $profile['branch_id'] !== null ? (int) $profile['branch_id'] : null);
+            $resultArrangement = $arrangement !== null
+                ? $arrangement
+                : ($profile !== null && $profile['work_arrangement'] !== null
+                    ? (string) $profile['work_arrangement']
+                    : 'onsite');
+
+            if (in_array($resultArrangement, ['wfh', 'hybrid'], true) && !isset($approved[$idno])) {
+                $noHomePin++;
+            }
+
+            if ($resultArrangement === 'onsite' && $resultBranch === null) {
+                $noBranchForOnsite++;
+            }
+        }
+
+        if ($preview) {
+            $db->rollback();
+        } else {
+            $db->commit();
+        }
+    } catch (Throwable $e) {
+        $db->rollback();
+        throw $e;
+    }
+
+    return [
+        'data' => [
+            'updated' => $updated,
+            'created' => $created,
+            'skipped' => $skipped,
+            'warnings' => [
+                'no_home_pin' => $noHomePin,
+                'no_branch_for_onsite' => $noBranchForOnsite,
+            ],
+        ],
+    ];
+}

@@ -59,6 +59,10 @@ return [
 
     'GET /api/admin/employees' => static fn (mysqli $db, ?array $auth, array $params): array
         => portal_admin_employees_index($db, $auth ?? [], $_GET),
+    'POST /api/admin/employees/assignments/preview' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_assignments_bulk($db, $auth ?? [], portal_request_input(), true),
+    'POST /api/admin/employees/assignments/bulk' => static fn (mysqli $db, ?array $auth, array $params): array
+        => portal_admin_assignments_bulk($db, $auth ?? [], portal_request_input()),
 
     'POST /api/login' => [
         'public' => true,

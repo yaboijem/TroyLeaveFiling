@@ -130,4 +130,199 @@ return [
             403
         );
     },
+
+    'bulk branch only updates branch and keeps arrangement' => function (): void {
+        $db = portal_test_db();
+        $result = portal_admin_assignments_bulk($db, admin_employee_auth(), ['idnos' => ['1015'], 'branch_id' => 2]);
+
+        portal_assert_same(1, $result['data']['updated'], 'updated');
+        portal_assert_same(0, $result['data']['created'], 'created');
+        portal_assert_same(0, $result['data']['skipped'], 'skipped');
+
+        $profile = $db->query("SELECT * FROM dtr_employee_profile WHERE idno = '1015'")->fetch_assoc();
+        portal_assert_same('2', (string) $profile['branch_id'], 'branch');
+        portal_assert_same('onsite', $profile['work_arrangement'], 'arrangement');
+    },
+
+    'bulk arrangement only updates arrangement and keeps branch' => function (): void {
+        $db = portal_test_db();
+        $result = portal_admin_assignments_bulk($db, admin_employee_auth(), ['idnos' => ['1015'], 'work_arrangement' => 'wfh']);
+
+        portal_assert_same(1, $result['data']['updated'], 'updated');
+
+        $profile = $db->query("SELECT * FROM dtr_employee_profile WHERE idno = '1015'")->fetch_assoc();
+        portal_assert_same('1', (string) $profile['branch_id'], 'branch');
+        portal_assert_same('wfh', $profile['work_arrangement'], 'arrangement');
+    },
+
+    'bulk both updates both' => function (): void {
+        $db = portal_test_db();
+        portal_admin_assignments_bulk($db, admin_employee_auth(), [
+            'idnos' => ['1015'],
+            'branch_id' => 2,
+            'work_arrangement' => 'hybrid',
+        ]);
+
+        $profile = $db->query("SELECT * FROM dtr_employee_profile WHERE idno = '1015'")->fetch_assoc();
+        portal_assert_same('2', (string) $profile['branch_id'], 'branch');
+        portal_assert_same('hybrid', $profile['work_arrangement'], 'arrangement');
+    },
+
+    'bulk rejects no changes' => function (): void {
+        $error = portal_assert_api_error(
+            fn () => portal_admin_assignments_bulk(portal_test_db(), admin_employee_auth(), ['idnos' => ['1015']]),
+            'validation_error',
+            422
+        );
+
+        portal_assert_true(isset($error->details['errors']['assignment']), 'Expected an assignment error.');
+    },
+
+    'bulk rejects inactive branch' => function (): void {
+        $db = portal_test_db();
+        $db->query('UPDATE branches SET is_active = 0 WHERE id = 2');
+
+        $error = portal_assert_api_error(
+            fn () => portal_admin_assignments_bulk($db, admin_employee_auth(), ['idnos' => ['1015'], 'branch_id' => 2]),
+            'validation_error',
+            422
+        );
+
+        portal_assert_true(isset($error->details['errors']['branch_id']), 'Expected a branch error.');
+    },
+
+    'bulk creates missing profile with onsite default' => function (): void {
+        $db = portal_test_db();
+        $result = portal_admin_assignments_bulk($db, admin_employee_auth(), ['idnos' => ['1020'], 'branch_id' => 1]);
+
+        portal_assert_same(1, $result['data']['created'], 'created');
+
+        $profile = $db->query("SELECT * FROM dtr_employee_profile WHERE idno = '1020'")->fetch_assoc();
+        portal_assert_same('1', (string) $profile['branch_id'], 'branch');
+        portal_assert_same('onsite', $profile['work_arrangement'], 'default arrangement');
+    },
+
+    'bulk arrangement only creates profile with null branch' => function (): void {
+        $db = portal_test_db();
+        $result = portal_admin_assignments_bulk($db, admin_employee_auth(), ['idnos' => ['1020'], 'work_arrangement' => 'wfh']);
+
+        portal_assert_same(1, $result['data']['created'], 'created');
+
+        $profile = $db->query("SELECT * FROM dtr_employee_profile WHERE idno = '1020'")->fetch_assoc();
+        portal_assert_null($profile['branch_id'], 'branch');
+        portal_assert_same('wfh', $profile['work_arrangement'], 'arrangement');
+    },
+
+    'bulk skips inactive employees' => function (): void {
+        $db = portal_test_db();
+        $result = portal_admin_assignments_bulk($db, admin_employee_auth(), ['idnos' => ['1018', '1015'], 'branch_id' => 2]);
+
+        portal_assert_same(1, $result['data']['updated'], 'updated');
+        portal_assert_same(1, $result['data']['skipped'], 'skipped');
+
+        $profile = $db->query("SELECT * FROM dtr_employee_profile WHERE idno = '1018'")->fetch_assoc();
+        portal_assert_same('1', (string) $profile['branch_id'], 'inactive employee must be untouched');
+    },
+
+    'bulk skips unknown idnos' => function (): void {
+        $result = portal_admin_assignments_bulk(
+            portal_test_db(),
+            admin_employee_auth(),
+            ['idnos' => ['999999', '1015'], 'branch_id' => 2]
+        );
+
+        portal_assert_same(1, $result['data']['updated'], 'updated');
+        portal_assert_same(1, $result['data']['skipped'], 'skipped');
+    },
+
+    'bulk warns when wfh has no approved pin' => function (): void {
+        $result = portal_admin_assignments_bulk(
+            portal_test_db(),
+            admin_employee_auth(),
+            ['idnos' => ['1019'], 'work_arrangement' => 'wfh']
+        );
+
+        portal_assert_same(1, $result['data']['warnings']['no_home_pin'], 'no_home_pin');
+        portal_assert_same(0, $result['data']['warnings']['no_branch_for_onsite'], 'no_branch_for_onsite');
+    },
+
+    'bulk warns when onsite has no branch' => function (): void {
+        $result = portal_admin_assignments_bulk(
+            portal_test_db(),
+            admin_employee_auth(),
+            ['idnos' => ['1020'], 'work_arrangement' => 'onsite']
+        );
+
+        portal_assert_same(0, $result['data']['warnings']['no_home_pin'], 'no_home_pin');
+        portal_assert_same(1, $result['data']['warnings']['no_branch_for_onsite'], 'no_branch_for_onsite');
+    },
+
+    'bulk handles 101 idnos in two chunks' => function (): void {
+        $db = portal_test_db();
+
+        $stmt = $db->prepare(
+            "INSERT INTO employeefiletbl
+                (idno, employeename, deptcode, divcode, position, employmentstatus, email,
+                 active, usertype, password, session_token, last_login, imagesrc)
+             VALUES (?, ?, 'ADMIN', 'HO', 'STAFF', 'Regular', ?, 'YES', '', ?, NULL, NULL, '')"
+        );
+        $password = password_hash('Password123!', PASSWORD_BCRYPT);
+
+        for ($i = 0; $i < 101; $i++) {
+            $idno = 'T' . str_pad((string) $i, 4, '0', STR_PAD_LEFT);
+            $name = 'Bulk Test ' . $i;
+            $email = 'bulk' . $i . '@example.test';
+            $stmt->bind_param('ssss', $idno, $name, $email, $password);
+            $stmt->execute();
+        }
+        $stmt->close();
+
+        $idnos = [];
+        for ($i = 0; $i < 101; $i++) {
+            $idnos[] = 'T' . str_pad((string) $i, 4, '0', STR_PAD_LEFT);
+        }
+
+        $result = portal_admin_assignments_bulk($db, admin_employee_auth(), ['idnos' => $idnos, 'branch_id' => 1]);
+
+        portal_assert_same(101, $result['data']['created'], 'created');
+        $count = (int) $db->query("SELECT COUNT(*) AS c FROM dtr_employee_profile WHERE idno LIKE 'T%'")->fetch_assoc()['c'];
+        portal_assert_same(101, $count, 'profile count');
+    },
+
+    'bulk rejects more than 2000 idnos' => function (): void {
+        $idnos = [];
+        for ($i = 0; $i < 2001; $i++) {
+            $idnos[] = 'X' . $i;
+        }
+
+        $error = portal_assert_api_error(
+            fn () => portal_admin_assignments_bulk(portal_test_db(), admin_employee_auth(), ['idnos' => $idnos, 'branch_id' => 1]),
+            'validation_error',
+            422
+        );
+
+        portal_assert_true(isset($error->details['errors']['idnos']), 'Expected an idnos error.');
+    },
+
+    'preview returns counts and writes nothing' => function (): void {
+        $db = portal_test_db();
+        $result = portal_admin_assignments_bulk(
+            $db,
+            admin_employee_auth(),
+            ['idnos' => ['1015'], 'branch_id' => 2],
+            true
+        );
+
+        portal_assert_same(1, $result['data']['updated'], 'updated');
+        $profile = $db->query("SELECT * FROM dtr_employee_profile WHERE idno = '1015'")->fetch_assoc();
+        portal_assert_same('1', (string) $profile['branch_id'], 'preview must not write');
+    },
+
+    'approver cannot bulk assign' => function (): void {
+        portal_assert_api_error(
+            fn () => portal_admin_assignments_bulk(portal_test_db(), admin_employee_auth('approver'), ['idnos' => ['1015'], 'branch_id' => 2]),
+            'forbidden',
+            403
+        );
+    },
 ];
