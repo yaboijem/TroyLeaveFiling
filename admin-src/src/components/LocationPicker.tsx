@@ -59,12 +59,16 @@ export function LocationPicker({
   latitude,
   longitude,
   radiusMeters,
+  allowanceMeters,
+  ceilingMeters,
   onChange,
   className = 'h-72',
 }: {
   latitude: number | null;
   longitude: number | null;
   radiusMeters?: number | null;
+  allowanceMeters?: number | null;
+  ceilingMeters?: number | null;
   onChange: (lat: number, lng: number) => void;
   className?: string;
 }) {
@@ -80,6 +84,11 @@ export function LocationPicker({
 
   const center: [number, number] = hasPin ? [latitude!, longitude!] : DEFAULT_CENTER;
   const radius = radiusMeters != null && !Number.isNaN(radiusMeters) && radiusMeters > 0 ? radiusMeters : null;
+  const allowance =
+    allowanceMeters != null && !Number.isNaN(allowanceMeters) && allowanceMeters > 0 ? allowanceMeters : 0;
+  const ceiling =
+    ceilingMeters != null && !Number.isNaN(ceilingMeters) && ceilingMeters > 0 ? ceilingMeters : null;
+  const usableAllowance = ceiling != null ? Math.min(allowance, ceiling) : allowance;
 
   const mapsLink = hasPin
     ? `https://www.google.com/maps?q=${latitude},${longitude}&z=17`
@@ -120,6 +129,7 @@ export function LocationPicker({
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            referrerPolicy="strict-origin-when-cross-origin"
           />
           <MapResize />
           <ClickToPin onPick={onChange} />
@@ -133,6 +143,19 @@ export function LocationPicker({
                   const pos = e.target.getLatLng();
                   onChange(roundCoord(pos.lat), roundCoord(pos.lng));
                 },
+              }}
+            />
+          )}
+          {hasPin && radius != null && usableAllowance > 0 && (
+            <Circle
+              center={[latitude!, longitude!]}
+              radius={radius + usableAllowance}
+              pathOptions={{
+                color: '#d97706',
+                fillColor: '#f59e0b',
+                fillOpacity: 0.07,
+                weight: 2,
+                dashArray: '6 5',
               }}
             />
           )}
@@ -163,7 +186,10 @@ export function LocationPicker({
             )}
           </span>
           {radius != null && hasPin && (
-            <span className="font-mono tnum">Radius {formatMeters(radius)}</span>
+            <span className="font-mono tnum">
+              Radius {formatMeters(radius)}
+              {usableAllowance > 0 ? ` + ${formatMeters(usableAllowance)} allowance` : ''}
+            </span>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">

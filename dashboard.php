@@ -292,6 +292,19 @@
                 </li>';
             }
 
+            if (isset($_SESSION['idno'], $_SESSION['session_token'])
+                && ($pagedisplayfor=='admin' || $pagedisplayfor=='approver')) {
+              echo '
+                <li class="nav-item">
+                  <a href="admin/" target="_top" class="nav-link" title="Open the DTR Admin configuration">
+                    <i class="nav-icon fas fa-cog"></i>
+                    <p>
+                      DTR Admin
+                    </p>
+                  </a>
+                </li>';
+            }
+
             if ($pagedisplayfor=='admin' || $pagedisplayfor=='approver') {
               echo '
                 <li class="nav-item">

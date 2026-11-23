@@ -84,6 +84,7 @@ export function LocationMap({
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            referrerPolicy="strict-origin-when-cross-origin"
           />
           <MapResize />
           <FitBounds points={points} />

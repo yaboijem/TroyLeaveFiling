@@ -12,6 +12,7 @@ import {
   updateBranch,
 } from '../api/endpoints';
 import type { Branch } from '../api/types';
+import { GpsCheckPreview } from '../components/GpsCheckPreview';
 import { LocationPicker } from '../components/LocationPicker';
 import { PageHeader } from '../components/PageHeader';
 import {
@@ -234,6 +235,9 @@ export function BranchesPage() {
   const parsedLat = form.latitude.trim() === '' ? null : Number(form.latitude);
   const parsedLng = form.longitude.trim() === '' ? null : Number(form.longitude);
   const parsedRadius = form.radius_meters.trim() === '' ? null : Number(form.radius_meters);
+  const parsedCeiling = form.accuracy_ceiling_meters.trim() === '' ? null : Number(form.accuracy_ceiling_meters);
+  const parsedAllowance =
+    form.accuracy_allowance_meters.trim() === '' ? null : Number(form.accuracy_allowance_meters);
   const mapLat =
     parsedLat != null && !Number.isNaN(parsedLat) && parsedLat >= -90 && parsedLat <= 90 ? parsedLat : null;
   const mapLng =
@@ -472,6 +476,8 @@ export function BranchesPage() {
                 latitude={mapLat}
                 longitude={mapLng}
                 radiusMeters={parsedRadius != null && !Number.isNaN(parsedRadius) ? parsedRadius : null}
+                allowanceMeters={parsedAllowance != null && !Number.isNaN(parsedAllowance) ? parsedAllowance : null}
+                ceilingMeters={parsedCeiling != null && !Number.isNaN(parsedCeiling) ? parsedCeiling : null}
                 onChange={handleMapPick}
                 className="h-72"
               />
@@ -525,6 +531,13 @@ export function BranchesPage() {
               onChange={(event) => setForm({ ...form, accuracy_allowance_meters: event.target.value })}
             />
           </Field>
+          <div className="sm:col-span-2">
+            <GpsCheckPreview
+              radiusMeters={parsedRadius}
+              ceilingMeters={parsedCeiling}
+              allowanceMeters={parsedAllowance}
+            />
+          </div>
           <div className="flex items-center gap-2">
             <Toggle
               checked={form.is_active}
